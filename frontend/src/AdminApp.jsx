@@ -229,7 +229,14 @@ function AdminDashboard() {
     </button>
   );
 
-  const statusColor = (s, cancelled) => cancelled ? C.sub : s === "done" ? C.rating : C.primary;
+  const statusColor = (s, cancelled) => {
+    if (cancelled) return C.sub;
+    if (!s) return C.sub;
+    const l = s.toLowerCase();
+    if (l.includes("picked up") || l.includes("delivered") || l.includes("served") || l.includes("completed")) return C.rating;
+    if (l.includes("placed")) return C.sub;
+    return C.primary;
+  };
   const fmt = (iso) => iso ? new Date(iso).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" }) : "—";
 
   return (

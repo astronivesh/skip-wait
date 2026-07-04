@@ -848,6 +848,20 @@ def create_order(body: OrderIn, phone: str = Depends(current_phone),
     if kitchen.credit_balance < SKIP_FEE:
         raise HTTPException(402, "Kitchen is out of Skip Wait credits")
 
+    # Atomic decrement — prevents two simultaneous orders from both passing
+    # the credit check and together overdrafting the balance.
+    db.execute(
+        __import__("sqlalchemy").text(
+            "UPDATE kitchens SET credit_balance = credit_balance - :fee "
+            "WHERE id = :kid AND credit_balance >= :fee"
+        ),
+        {"fee": SKIP_FEE, "kid": kitchen.id}
+    )
+    db.refresh(kitchen)
+    if kitchen.credit_balance < 0:
+        db.rollback()
+        raise HTTPException(402, "Kitchen is out of Skip Wait credits")
+
     if body.mode == "deliver" and not (body.delivery_address or "").strip():
         raise HTTPException(400, "Delivery address is required")
 
@@ -927,8 +941,7 @@ def create_order(body: OrderIn, phone: str = Depends(current_phone),
     for mi, qty, item_name, item_price in order_items:
         db.add(OrderItem(order_id=oid, menu_item_id=mi.id, name=item_name, price=item_price, qty=qty, veg=mi.veg))
 
-    kitchen.credit_balance -= SKIP_FEE
-    db.commit()
+    db.commit()  # credit already decremented atomically above
     db.refresh(order)
     return serialize(order)
 
@@ -1530,7 +1543,8 @@ def admin_create_kitchen(body: KitchenCreateIn, db: Session = Depends(get_db),
 
 @app.get("/admin/users")
 def admin_users(db: Session = Depends(get_db), _: str = Depends(require_admin)):
-    return [{"phone": u.phone, "role": u.role, "kitchen_id": u.kitchen_id}
+    return [{"phone": u.phone, "role": u.role, "kitchen_id": u.kitchen_id,
+             "is_banned": bool(u.is_banned)}
             for u in db.query(User).all()]
 
 
@@ -1590,6 +1604,12 @@ def admin_delete_kitchen(kid: str, db: Session = Depends(get_db), _: str = Depen
     return {"deleted": kid}
 
 
+def _order_status(o: Order) -> str:
+    flow = FLOW.get(o.mode, FLOW["pickup"])
+    idx  = max(0, min(o.status_index, len(flow) - 1))
+    return flow[idx]
+
+
 @app.get("/admin/orders")
 def admin_all_orders(db: Session = Depends(get_db), _: str = Depends(require_admin)):
     orders = db.query(Order).order_by(Order.created_at.desc()).limit(200).all()
@@ -1598,7 +1618,7 @@ def admin_all_orders(db: Session = Depends(get_db), _: str = Depends(require_adm
         "id": o.id, "kitchen_id": o.kitchen_id,
         "kitchen_name": kitchens.get(o.kitchen_id, o.kitchen_id),
         "customer_phone": o.customer_phone,
-        "mode": o.mode, "status": o.status, "total": o.total,
+        "mode": o.mode, "status": _order_status(o), "total": o.total,
         "cancelled": o.cancelled,
         "created_at": o.created_at.isoformat() if o.created_at else None,
     } for o in orders]
@@ -1611,7 +1631,7 @@ def admin_user_orders(phone: str, db: Session = Depends(get_db), _: str = Depend
     kitchens = {k.id: k.name for k in db.query(Kitchen).all()}
     return [{
         "id": o.id, "kitchen_name": kitchens.get(o.kitchen_id, o.kitchen_id),
-        "mode": o.mode, "status": o.status, "total": o.total,
+        "mode": o.mode, "status": _order_status(o), "total": o.total,
         "cancelled": o.cancelled,
         "created_at": o.created_at.isoformat() if o.created_at else None,
     } for o in orders]
