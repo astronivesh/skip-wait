@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#EFE6D8;font-family:'Schibsted Grotesk',system-ui,sans-serif}
+.dv-turn{padding:40px 44px 32px;scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#2B1E16;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 'Schibsted Grotesk',sans-serif;color:#2B1E16}
+.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(43,30,22,.1);color:#2B1E16;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'Schibsted Grotesk',sans-serif;color:rgba(43,30,22,.6)}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(43,30,22,.1);border-radius:34px;box-shadow:0 24px 60px -24px rgba(43,30,22,.35);overflow:hidden}
+.dv-opt:target .dv-oid{background:#B03526;color:#fff}
+.dv-next{margin:26px 0 0;font:12px/1.5 'Schibsted Grotesk',sans-serif;color:rgba(43,30,22,.55)}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">SkipWait — warm &amp; appetizing direction</span></div>
+  <p style="max-width:620px;margin:0 0 24px;font-size:12.5px;line-height:1.6;color:rgba(43,30,22,.62)">
+    Assumptions: general consumers, neutral mobile (390pt). Hero feature: <strong style="color:#2B1E16">order ahead with a live ready-time</strong> — every surface answers "when is my food ready?". Pickup and delivery are equal peers via a segmented toggle that re-computes timing. Type: Bricolage Grotesque (display) + Schibsted Grotesk (body). Palette: toasted cream, espresso ink, chili red <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#B03526;vertical-align:-1px"></span>. Photo areas are placeholders — drop in real food shots. The toggle, tabs, options and stepper are tappable.
+  </p>
+  <div class="dv-opts">
+
+    <!-- ======================= 1a MENU ======================= -->
+    <div class="dv-opt" id="1a" data-screen-label="Restaurant menu">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Restaurant menu — pickup/delivery toggle, live ready-time</div>
+      <div class="dv-card" style="width:390px;background:#FBF4EA;color:#2B1E16">
+
+        <!-- header / hero -->
+        <div style="position:relative;height:196px;background:repeating-linear-gradient(-45deg,#E8DECF 0 14px,#EFE7D9 14px 28px)">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:500 11px ui-monospace,Menlo,monospace;color:rgba(43,30,22,.45)">restaurant hero photo</div>
+          <div style="position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between">
+            <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,251,244,.92);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(43,30,22,.15)">←</div>
+            <div style="display:flex;gap:8px">
+              <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,251,244,.92);display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 8px rgba(43,30,22,.15)">♡</div>
+              <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,251,244,.92);display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(43,30,22,.15)">⌕</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- restaurant card overlapping hero -->
+        <div style="margin:-44px 16px 0;position:relative;background:#FFFBF4;border-radius:22px;padding:18px 18px 16px;box-shadow:0 10px 30px -12px rgba(43,30,22,.25)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+            <div>
+              <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:24px;line-height:1.05;letter-spacing:-.02em">Lucia's Counter</div>
+              <div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:12.5px;color:rgba(43,30,22,.6)">
+                <span style="color:#2B1E16;font-weight:600">★ 4.8</span><span>(1.2k)</span><span>·</span><span>Mexican</span><span>·</span><span>0.4 mi</span>
+              </div>
+            </div>
+            <div style="flex:none;text-align:center;background:#F8E4DE;border:1px solid #EBC2B7;border-radius:14px;padding:8px 12px">
+              <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:18px;line-height:1;color:#8A2418">{{ readyMins }}</div>
+              <div style="font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8A2418;margin-top:3px">min</div>
+            </div>
+          </div>
+
+          <!-- pickup / delivery toggle -->
+          <div style="margin-top:14px;display:flex;background:#F0E6D6;border-radius:999px;padding:4px;gap:4px">
+            <div onClick="{{ setPickup }}" style="flex:1;text-align:center;padding:9px 0;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;background:{{ pickupBg }};color:{{ pickupFg }};box-shadow:{{ pickupShadow }};transition:all .25s">Pickup</div>
+            <div onClick="{{ setDelivery }}" style="flex:1;text-align:center;padding:9px 0;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;background:{{ deliveryBg }};color:{{ deliveryFg }};box-shadow:{{ deliveryShadow }};transition:all .25s">Delivery</div>
+          </div>
+          <div style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:rgba(43,30,22,.62)">
+            <span style="width:7px;height:7px;border-radius:50%;background:#3E7C4F;display:inline-block"></span>
+            {{ fulfillmentLine }}
+          </div>
+        </div>
+
+        <!-- category tabs -->
+        <div style="display:flex;gap:8px;padding:18px 16px 4px;overflow:hidden">
+          <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="4">
+            <div onClick="{{ tab.select }}" style="flex:none;padding:8px 15px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;background:{{ tab.bg }};color:{{ tab.fg }};border:1px solid {{ tab.border }};transition:all .2s">{{ tab.name }}</div>
+          </sc-for>
+        </div>
+
+        <!-- menu items -->
+        <div style="display:flex;flex-direction:column;padding:8px 16px 12px;gap:10px">
+          <sc-for list="{{ items }}" as="it" hint-placeholder-count="4">
+            <div style="display:flex;gap:14px;align-items:stretch;background:#FFFBF4;border:1px solid rgba(43,30,22,.07);border-radius:18px;padding:12px;cursor:pointer" style-hover="border-color:#B03526">
+              <div style="flex:1;display:flex;flex-direction:column;gap:5px;min-width:0">
+                <sc-if value="{{ it.popular }}" hint-placeholder-val="{{ false }}">
+                  <div style="align-self:flex-start;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8A2418;background:#F8E4DE;border-radius:5px;padding:3px 6px">★ Popular</div>
+                </sc-if>
+                <div style="font-weight:700;font-size:15px;line-height:1.2">{{ it.name }}</div>
+                <div style="font-size:12px;line-height:1.45;color:rgba(43,30,22,.55);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ it.desc }}</div>
+                <div style="margin-top:auto;font-weight:700;font-size:14px">{{ it.price }}</div>
+              </div>
+              <div style="flex:none;position:relative;width:92px;border-radius:14px;background:repeating-linear-gradient(-45deg,#E8DECF 0 10px,#EFE7D9 10px 20px);display:flex;align-items:center;justify-content:center">
+                <span style="font:500 8.5px ui-monospace,Menlo,monospace;color:rgba(43,30,22,.4);text-align:center;padding:0 4px">{{ it.photo }}</span>
+                <div style="position:absolute;right:-6px;bottom:-6px;width:30px;height:30px;border-radius:50%;background:#B03526;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;box-shadow:0 4px 10px rgba(176,53,38,.4)">+</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- sticky cart bar -->
+        <div style="position:sticky;bottom:0;padding:12px 16px 16px;background:linear-gradient(to top,#FBF4EA 65%,rgba(251,244,234,0))">
+          <div style="display:flex;align-items:center;justify-content:space-between;background:#2B1E16;color:#FFFBF4;border-radius:999px;padding:14px 20px;cursor:pointer;box-shadow:0 12px 28px -10px rgba(43,30,22,.5)">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="background:#B03526;border-radius:8px;font-size:12px;font-weight:700;padding:3px 8px">2</span>
+              <span style="font-weight:700;font-size:14.5px">View order</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px">
+              <span style="color:rgba(255,251,244,.65)">{{ cartEta }}</span>
+              <span style="font-weight:700;font-size:14.5px">$18.50</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ======================= 1b ITEM DETAIL ======================= -->
+    <div class="dv-opt" id="1b" data-screen-label="Item detail">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Item detail — options, stepper, ready-by promise</div>
+      <div class="dv-card" style="width:390px;background:#FBF4EA;color:#2B1E16;display:flex;flex-direction:column">
+
+        <!-- hero -->
+        <div style="position:relative;height:250px;background:repeating-linear-gradient(-45deg,#E8DECF 0 14px,#EFE7D9 14px 28px)">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:500 11px ui-monospace,Menlo,monospace;color:rgba(43,30,22,.45)">dish photo — al pastor bowl</div>
+          <div style="position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between">
+            <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,251,244,.92);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(43,30,22,.15)">←</div>
+            <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,251,244,.92);display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 8px rgba(43,30,22,.15)">♡</div>
+          </div>
+          <div style="position:absolute;left:16px;bottom:14px;display:flex;gap:6px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;background:rgba(255,251,244,.94);border-radius:6px;padding:5px 8px;color:#8A2418">★ Popular</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;background:rgba(255,251,244,.94);border-radius:6px;padding:5px 8px;color:#3E7C4F">GF option</div>
+          </div>
+        </div>
+
+        <div style="padding:20px 20px 0">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:26px;line-height:1.05;letter-spacing:-.02em">Al Pastor Bowl</div>
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:22px;color:#8A2418">{{ itemPrice }}</div>
+          </div>
+          <div style="margin-top:8px;font-size:13px;line-height:1.55;color:rgba(43,30,22,.6)">Spit-roasted pork, charred pineapple, cilantro-lime rice, black beans, salsa verde and cotija.</div>
+        </div>
+
+        <!-- size -->
+        <div style="padding:20px 20px 0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div style="font-weight:700;font-size:14px">Size</div>
+            <div style="font-size:11px;font-weight:600;color:rgba(43,30,22,.45)">Required</div>
+          </div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ sizes }}" as="s" hint-placeholder-count="2">
+              <div onClick="{{ s.select }}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;cursor:pointer;background:{{ s.bg }};border:1.5px solid {{ s.border }};transition:all .2s">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid {{ s.dotBorder }};display:flex;align-items:center;justify-content:center">
+                  <div style="width:9px;height:9px;border-radius:50%;background:{{ s.dot }}"></div>
+                </div>
+                <div style="flex:1;font-weight:600;font-size:13.5px">{{ s.name }}</div>
+                <div style="font-size:12.5px;font-weight:600;color:rgba(43,30,22,.5)">{{ s.delta }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- add-ons -->
+        <div style="padding:18px 20px 0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div style="font-weight:700;font-size:14px">Add-ons</div>
+            <div style="font-size:11px;font-weight:600;color:rgba(43,30,22,.45)">Optional</div>
+          </div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ addons }}" as="a" hint-placeholder-count="3">
+              <div onClick="{{ a.toggle }}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;cursor:pointer;background:{{ a.bg }};border:1.5px solid {{ a.border }};transition:all .2s">
+                <div style="width:18px;height:18px;border-radius:6px;border:2px solid {{ a.boxBorder }};background:{{ a.boxBg }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800">{{ a.check }}</div>
+                <div style="flex:1;font-weight:600;font-size:13.5px">{{ a.name }}</div>
+                <div style="font-size:12.5px;font-weight:600;color:rgba(43,30,22,.5)">{{ a.delta }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- footer -->
+        <div style="margin-top:20px;padding:14px 16px 16px;background:#FFFBF4;border-top:1px solid rgba(43,30,22,.07)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:rgba(43,30,22,.6);margin-bottom:12px">
+            <span style="width:7px;height:7px;border-radius:50%;background:#3E7C4F;display:inline-block"></span>
+            Order now — ready for pickup by <strong style="color:#2B1E16">{{ readyBy }}</strong>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div style="flex:none;display:flex;align-items:center;gap:2px;background:#F0E6D6;border-radius:999px;padding:5px">
+              <div onClick="{{ dec }}" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;cursor:pointer;background:#FFFBF4">−</div>
+              <div style="width:30px;text-align:center;font-weight:800;font-size:15px">{{ qty }}</div>
+              <div onClick="{{ inc }}" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;cursor:pointer;background:#FFFBF4">+</div>
+            </div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:space-between;background:#B03526;color:#fff;border-radius:999px;padding:14px 20px;cursor:pointer;box-shadow:0 12px 28px -10px rgba(176,53,38,.55)" style-hover="background:#8A2418">
+              <span style="font-weight:700;font-size:14.5px">Add to order</span>
+              <span style="font-weight:800;font-size:14.5px">{{ addTotal }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "add the order-tracking screen" · "make <a class="dv-oid" href="#1a">1a</a> darker / moodier" · "show a home / browse screen in this style"</p>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;busyLevel&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;quiet&quot;, &quot;normal&quot;, &quot;rush&quot;], &quot;default&quot;: &quot;normal&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Simulation&quot;}}">
+class Component extends DCLogic {
+  state = {
+    mode: 'pickup',
+    tab: 0,
+    size: 1,
+    addons: [true, false, false],
+    qty: 1,
+  };
+
+  renderVals() {
+    const { mode, tab, size, addons, qty } = this.state;
+    const busy = this.props.busyLevel ?? 'normal';
+    const busyAdd = busy === 'quiet' ? -4 : busy === 'rush' ? 10 : 0;
+    const pickupMins = 12 + busyAdd;
+    const deliveryMins = 28 + busyAdd;
+    const isPickup = mode === 'pickup';
+    const readyMins = isPickup ? pickupMins : deliveryMins;
+
+    // ready-by clock
+    const t = new Date(Date.now() + pickupMins * 60000);
+    const readyBy = t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+    const tabNames = ['Bowls', 'Tacos', 'Sides', 'Drinks', 'Desserts'];
+    const tabs = tabNames.map((name, i) => ({
+      name,
+      bg: i === tab ? '#2B1E16' : '#FFFBF4',
+      fg: i === tab ? '#FFFBF4' : '#2B1E16',
+      border: i === tab ? '#2B1E16' : 'rgba(43,30,22,.12)',
+      select: () => this.setState({ tab: i }),
+    }));
+
+    const items = [
+      { name: 'Al Pastor Bowl', desc: 'Spit-roasted pork, charred pineapple, cilantro-lime rice, salsa verde.', price: '$13.50', popular: true, photo: 'bowl photo' },
+      { name: 'Carnitas Bowl', desc: 'Slow-braised pork, pickled onion, black beans, crema, cotija.', price: '$13.00', popular: false, photo: 'bowl photo' },
+      { name: 'Veggie Verde Bowl', desc: 'Grilled poblano, roasted corn, avocado, cilantro-lime rice.', price: '$11.50', popular: false, photo: 'bowl photo' },
+      { name: 'Chicken Tinga Bowl', desc: 'Chipotle-braised chicken, crispy shallot, queso fresco.', price: '$12.50', popular: true, photo: 'bowl photo' },
+    ];
+
+    const sizeDefs = [
+      { name: 'Regular', delta: '', price: 0 },
+      { name: 'Large', delta: '+ $2.50', price: 2.5 },
+    ];
+    const sizes = sizeDefs.map((s, i) => ({
+      ...s,
+      bg: i === size ? '#F8E4DE' : '#FFFBF4',
+      border: i === size ? '#B03526' : 'rgba(43,30,22,.1)',
+      dotBorder: i === size ? '#B03526' : 'rgba(43,30,22,.3)',
+      dot: i === size ? '#B03526' : 'transparent',
+      select: () => this.setState({ size: i }),
+    }));
+
+    const addonDefs = [
+      { name: 'Guacamole', delta: '+ $2.00', price: 2 },
+      { name: 'Extra salsa verde', delta: '+ $0.75', price: 0.75 },
+      { name: 'Chips', delta: '+ $3.00', price: 3 },
+    ];
+    const addonRows = addonDefs.map((a, i) => ({
+      ...a,
+      bg: addons[i] ? '#F8E4DE' : '#FFFBF4',
+      border: addons[i] ? '#B03526' : 'rgba(43,30,22,.1)',
+      boxBorder: addons[i] ? '#B03526' : 'rgba(43,30,22,.3)',
+      boxBg: addons[i] ? '#B03526' : 'transparent',
+      check: addons[i] ? '✓' : '',
+      toggle: () => {
+        const next = addons.slice();
+        next[i] = !next[i];
+        this.setState({ addons: next });
+      },
+    }));
+
+    const base = 11.5 + sizeDefs[size].price + addonDefs.reduce((s, a, i) => s + (addons[i] ? a.price : 0), 0);
+    const total = (base * qty).toFixed(2);
+
+    const selShadow = '0 3px 10px rgba(43,30,22,.18)';
+    return {
+      readyMins,
+      fulfillmentLine: isPickup
+        ? `Order now — ready for pickup at ${readyBy}`
+        : `Delivery to Main St — arrives in ~${deliveryMins} min · $1.99 fee`,
+      cartEta: isPickup ? `ready ${readyBy}` : `~${deliveryMins} min`,
+      setPickup: () => this.setState({ mode: 'pickup' }),
+      setDelivery: () => this.setState({ mode: 'delivery' }),
+      pickupBg: isPickup ? '#B03526' : 'transparent',
+      pickupFg: isPickup ? '#fff' : 'rgba(43,30,22,.55)',
+      pickupShadow: isPickup ? selShadow : 'none',
+      deliveryBg: !isPickup ? '#B03526' : 'transparent',
+      deliveryFg: !isPickup ? '#fff' : 'rgba(43,30,22,.55)',
+      deliveryShadow: !isPickup ? selShadow : 'none',
+      tabs,
+      items,
+      sizes,
+      addons: addonRows,
+      qty,
+      inc: () => this.setState(s => ({ qty: Math.min(9, s.qty + 1) })),
+      dec: () => this.setState(s => ({ qty: Math.max(1, s.qty - 1) })),
+      itemPrice: `$${(11.5 + sizeDefs[size].price).toFixed(2)}`,
+      addTotal: `$${total}`,
+      readyBy,
+    };
+  }
+}
+</script>
+</body>
+</html>
