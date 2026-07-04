@@ -129,11 +129,15 @@ export const api = {
   deleteTable: (kid, tid)   => req("DELETE", `/kitchens/${kid}/tables/${tid}`, undefined, true),
 
   // admin
-  adminStats:    ()                   => req("GET",  "/admin/stats",              undefined, true),
-  adminKitchens:      ()                  => req("GET",   "/admin/kitchens",              undefined, true),
-  adminTopup:         (kid, amount)       => req("POST",  `/admin/kitchens/${kid}/topup`, { amount }, true),
-  adminUsers:         ()                  => req("GET",   "/admin/users",                 undefined, true),
-  adminCreateKitchen: (data)              => req("POST",  "/admin/kitchens",              data,   true),
-  adminSetRole:       (phone, role)       => req("PATCH", `/admin/users/${phone}/role`,   { role }, true),
-  adminAssignKitchen: (phone, kitchen_id) => req("PATCH", `/admin/users/${phone}/kitchen`,{ kitchen_id }, true),
+  adminStats:         ()                   => req("GET",    "/admin/stats",                    undefined,       true),
+  adminKitchens:      ()                   => req("GET",    "/admin/kitchens",                 undefined,       true),
+  adminTopup:         (kid, amount)        => req("POST",   `/admin/kitchens/${kid}/topup`,    { amount },      true),
+  adminDeleteKitchen: (kid)                => req("DELETE", `/admin/kitchens/${kid}`,           undefined,       true),
+  adminUsers:         ()                   => req("GET",    "/admin/users",                    undefined,       true),
+  adminCreateKitchen: (data)               => req("POST",   "/admin/kitchens",                 data,            true),
+  adminSetRole:       (phone, role)        => req("PATCH",  `/admin/users/${phone}/role`,      { role },        true),
+  adminAssignKitchen: (phone, kitchen_id)  => req("PATCH",  `/admin/users/${phone}/kitchen`,   { kitchen_id },  true),
+  adminBanUser:       (phone, banned)      => req("PATCH",  `/admin/users/${phone}/ban`,       { banned },      true),
+  adminOrders:        ()                   => req("GET",    "/admin/orders",                   undefined,       true),
+  adminUserOrders:    (phone)              => req("GET",    `/admin/users/${phone}/orders`,    undefined,       true),
 };

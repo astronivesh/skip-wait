@@ -54,6 +54,7 @@ class User(Base):
     role       = Column(String, default="customer")   # customer | kitchen | admin
     kitchen_id = Column(String, ForeignKey("kitchens.id"), nullable=True)
     hashed_pw  = Column(String, nullable=True)        # set only for password-login accounts
+    is_banned  = Column(Boolean, default=False)
 
 
 class Kitchen(Base):
@@ -229,6 +230,7 @@ _add_column_if_missing("kitchens", "location_address",    "TEXT")
 _add_column_if_missing("orders",   "porter_order_id",     "TEXT")
 _add_column_if_missing("orders",   "porter_tracking_url", "TEXT")
 _add_column_if_missing("users",    "hashed_pw",           "TEXT")
+_add_column_if_missing("users",    "is_banned",           "BOOLEAN DEFAULT 0")
 
 
 # ── porter helpers ──────────────────────────────────────────────────────────
@@ -463,6 +465,8 @@ def password_login(body: PasswordLoginIn, db: Session = Depends(get_db)):
         raise HTTPException(401, "Invalid credentials")
     if user.hashed_pw != _hash_pw(body.phone, body.password):
         raise HTTPException(401, "Invalid credentials")
+    if user.is_banned:
+        raise HTTPException(403, "Account suspended. Contact support.")
     token = secrets.token_urlsafe(24)
     db.add(UserSession(token=token, phone=body.phone))
     db.commit()
@@ -489,11 +493,13 @@ def verify_otp(body: VerifyIn, db: Session = Depends(get_db)):
     rec = _login_otps.get(body.phone)
     if not rec or rec[0] != body.code or time.time() > rec[1]:
         raise HTTPException(400, "Invalid or expired code")
+    user = db.get(User, body.phone)
+    if user and user.is_banned:
+        raise HTTPException(403, "Account suspended. Contact support.")
     token = secrets.token_urlsafe(24)
     db.merge(UserSession(token=token, phone=body.phone))
     db.commit()
     _login_otps.pop(body.phone, None)
-    user = db.get(User, body.phone)
     role       = user.role       if user else "customer"
     kitchen_id = user.kitchen_id if user else None
     return {"token": token, "phone": body.phone, "role": role, "kitchen_id": kitchen_id}
@@ -1556,6 +1562,59 @@ def admin_assign_kitchen(phone: str, body: dict, db: Session = Depends(get_db), 
     u.kitchen_id = kid or None
     db.commit()
     return {"phone": u.phone, "role": u.role, "kitchen_id": u.kitchen_id}
+
+
+@app.patch("/admin/users/{phone}/ban")
+def admin_ban_user(phone: str, body: dict, db: Session = Depends(get_db), _: str = Depends(require_admin)):
+    if phone == ADMIN_PHONE:
+        raise HTTPException(400, "Cannot ban the super admin")
+    u = db.get(User, phone)
+    if not u:
+        raise HTTPException(404, "User not found")
+    u.is_banned = bool(body.get("banned", True))
+    db.commit()
+    return {"phone": u.phone, "is_banned": u.is_banned}
+
+
+@app.delete("/admin/kitchens/{kid}")
+def admin_delete_kitchen(kid: str, db: Session = Depends(get_db), _: str = Depends(require_admin)):
+    k = db.get(Kitchen, kid)
+    if not k:
+        raise HTTPException(404, "Kitchen not found")
+    # disown any users assigned to this kitchen
+    for u in db.query(User).filter(User.kitchen_id == kid).all():
+        u.kitchen_id = None
+        u.role = "customer"
+    db.delete(k)
+    db.commit()
+    return {"deleted": kid}
+
+
+@app.get("/admin/orders")
+def admin_all_orders(db: Session = Depends(get_db), _: str = Depends(require_admin)):
+    orders = db.query(Order).order_by(Order.created_at.desc()).limit(200).all()
+    kitchens = {k.id: k.name for k in db.query(Kitchen).all()}
+    return [{
+        "id": o.id, "kitchen_id": o.kitchen_id,
+        "kitchen_name": kitchens.get(o.kitchen_id, o.kitchen_id),
+        "customer_phone": o.customer_phone,
+        "mode": o.mode, "status": o.status, "total": o.total,
+        "cancelled": o.cancelled,
+        "created_at": o.created_at.isoformat() if o.created_at else None,
+    } for o in orders]
+
+
+@app.get("/admin/users/{phone}/orders")
+def admin_user_orders(phone: str, db: Session = Depends(get_db), _: str = Depends(require_admin)):
+    orders = db.query(Order).filter(Order.customer_phone == phone)\
+               .order_by(Order.created_at.desc()).all()
+    kitchens = {k.id: k.name for k in db.query(Kitchen).all()}
+    return [{
+        "id": o.id, "kitchen_name": kitchens.get(o.kitchen_id, o.kitchen_id),
+        "mode": o.mode, "status": o.status, "total": o.total,
+        "cancelled": o.cancelled,
+        "created_at": o.created_at.isoformat() if o.created_at else None,
+    } for o in orders]
 
 
 # ─────────────────────────── seed ───────────────────────────
