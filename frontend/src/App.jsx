@@ -629,25 +629,61 @@ function CustomerView({ brand, tableToken, reorderIntent, clearReorder, onRegist
 
 /* ── home ── */
 function Home({ onPick, onRegister }) {
-  const [kitchens, setKitchens] = useState(null);
-  const [query,    setQuery]    = useState("");
-  const [err,      setErr]      = useState("");
-  useEffect(() => { api.kitchens().then(setKitchens).catch((e) => setErr(e.message)); }, []);
+  const [kitchens,  setKitchens]  = useState(null);
+  const [query,     setQuery]     = useState("");
+  const [activeCuisine, setActiveCuisine] = useState(null);
+  const [sort,      setSort]      = useState("default"); // default | rating | eta
+  const [userCoords, setUserCoords] = useState(null);
+  const [err,       setErr]       = useState("");
+
+  useEffect(() => {
+    api.kitchens().then(setKitchens).catch((e) => setErr(e.message));
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {}
+      );
+    }
+  }, []);
+
+  // extract unique cuisine tags from comma-separated tag strings
+  const cuisines = kitchens
+    ? [...new Set(kitchens.flatMap((k) => k.tag.split(",").map((t) => t.trim())).filter(Boolean))]
+    : [];
 
   const q = query.trim().toLowerCase();
-  const visible = kitchens
-    ? kitchens.filter((k) =>
-        !q ||
-        k.name.toLowerCase().includes(q) ||
-        k.tag.toLowerCase().includes(q)
-      )
+  let visible = kitchens
+    ? kitchens.filter((k) => {
+        const matchQ = !q || k.name.toLowerCase().includes(q) || k.tag.toLowerCase().includes(q);
+        const matchC = !activeCuisine || k.tag.toLowerCase().includes(activeCuisine.toLowerCase());
+        return matchQ && matchC;
+      })
     : null;
+
+  if (visible) {
+    if (sort === "rating") visible = [...visible].sort((a, b) => b.rating - a.rating);
+    else if (sort === "eta") visible = [...visible].sort((a, b) => a.eta - b.eta);
+  }
 
   return (
     <div>
       <div style={{ padding: "14px 16px 10px", background: C.primary, color: "#fff" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 5, fontWeight: 800, fontSize: 16 }}>
-          <MapPin size={16} fill="#fff" stroke={C.primary} /> Malviya Nagar, Jaipur
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, fontWeight: 800, fontSize: 16 }}>
+            <MapPin size={16} fill="#fff" stroke={C.primary} />
+            {userCoords ? "Near you" : "Malviya Nagar, Jaipur"}
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[["default","All"],["rating","★ Top"],["eta","⚡ Fast"]].map(([s, label]) => (
+              <button key={s} onClick={() => setSort(s)}
+                style={{ border: "none", cursor: "pointer", borderRadius: 999, padding: "4px 10px",
+                  fontSize: 11.5, fontWeight: 700,
+                  background: sort === s ? "rgba(255,255,255,.25)" : "rgba(255,255,255,.1)",
+                  color: "#fff" }}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.card,
           borderRadius: 10, padding: "8px 12px", marginTop: 12 }}>
@@ -669,7 +705,29 @@ function Home({ onPick, onRegister }) {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, padding: "12px 16px", background: C.primarySoft,
+      {cuisines.length > 0 && (
+        <div style={{ display: "flex", gap: 8, padding: "10px 16px", overflowX: "auto",
+          borderBottom: `1px solid ${C.line}`, scrollbarWidth: "none" }}>
+          <button onClick={() => setActiveCuisine(null)}
+            style={{ flexShrink: 0, border: "none", cursor: "pointer", borderRadius: 999,
+              padding: "6px 14px", fontSize: 12.5, fontWeight: 700, transition: "all .2s",
+              background: !activeCuisine ? C.text : C.panel,
+              color: !activeCuisine ? C.card : C.sub }}>
+            All
+          </button>
+          {cuisines.map((c) => (
+            <button key={c} onClick={() => setActiveCuisine(activeCuisine === c ? null : c)}
+              style={{ flexShrink: 0, border: "none", cursor: "pointer", borderRadius: 999,
+                padding: "6px 14px", fontSize: 12.5, fontWeight: 700, transition: "all .2s",
+                background: activeCuisine === c ? C.primary : C.panel,
+                color: activeCuisine === c ? "#fff" : C.sub }}>
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 8, padding: "10px 16px", background: C.primarySoft,
         alignItems: "center", borderBottom: `1px solid ${C.primaryBorder}` }}>
         <Timer size={18} style={{ color: C.primary }} />
         <div style={{ fontSize: 12.5, fontWeight: 600 }}>
@@ -680,11 +738,11 @@ function Home({ onPick, onRegister }) {
       {err && <Note>{err} — is the backend running?</Note>}
       {!kitchens && !err && <Note>Loading kitchens…</Note>}
 
-      {visible && visible.length === 0 && q && (
-        <Note>No kitchens match "{query}"</Note>
+      {visible && visible.length === 0 && (q || activeCuisine) && (
+        <Note>No kitchens match{activeCuisine ? ` "${activeCuisine}"` : ""}{q ? ` "${query}"` : ""}</Note>
       )}
 
-      {visible && visible.length === 0 && !q && kitchens && (
+      {visible && visible.length === 0 && !q && !activeCuisine && kitchens && (
         <div style={{ padding: "32px 20px", textAlign: "center", color: C.sub, fontSize: 13.5 }}>
           No kitchens open yet in your area.
         </div>
