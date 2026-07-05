@@ -26,11 +26,16 @@ export const clearSession = () => {
 async function req(method, path, body, auth) {
   const headers = { "Content-Type": "application/json" };
   if (auth && getToken()) headers.Authorization = "Bearer " + getToken();
-  const res = await fetch(API + path, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(API + path, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new Error(`Cannot reach server (${API}). Check your internet connection.`);
+  }
   if (!res.ok) {
     let msg = "Request failed";
     try { msg = (await res.json()).detail || msg; } catch {}
