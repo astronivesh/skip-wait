@@ -211,6 +211,10 @@ export default function App({ tableToken, kitchenSlug, sharedOrderId }) {
   const [kitchenId, setKitchenId] = useState(getKitchenId() || null);
   // brand = { kitchen_id, kitchen_name, kitchen_tag, grad, table_id?, table_label? }
   const [brand,     setBrand]     = useState(null);
+  const [showHistory,   setShowHistory]   = useState(false);
+  const [showSetPw,     setShowSetPw]     = useState(false);
+  const [reorderIntent, setReorderIntent] = useState(null);
+  const [showRegister,  setShowRegister]  = useState(false);
 
   useEffect(() => {
     if (tableToken) {
@@ -249,11 +253,6 @@ export default function App({ tableToken, kitchenSlug, sharedOrderId }) {
         <Login brand={brand} onLogin={(r, kid) => { setRole(r); setKitchenId(kid); setAuthed(true); }} />
       </div>
     );
-
-  const [showHistory,   setShowHistory]   = useState(false);
-  const [showSetPw,     setShowSetPw]     = useState(false);
-  const [reorderIntent, setReorderIntent] = useState(null);
-  const [showRegister,  setShowRegister]  = useState(false);
 
   const handleRegistered = (kid) => {
     setRole("kitchen");
