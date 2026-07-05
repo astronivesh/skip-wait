@@ -2,6 +2,8 @@
  * Generates icon-192.png and icon-512.png for the Skip Wait PWA.
  * Run with: node scripts/gen-icons.mjs
  * No dependencies — uses only Node.js built-ins.
+ *
+ * Design: chili-red (#B03526) rounded-square, warm-white "S·W" lettering.
  */
 import { deflateSync } from "zlib";
 import { writeFileSync } from "fs";
@@ -40,92 +42,115 @@ function buildPNG(size, getPixel) {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0);
   ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // RGB
+  ihdr[8] = 8;  // bit depth
+  ihdr[9] = 6;  // RGBA
 
-  const raw = Buffer.alloc(size * (1 + size * 3));
+  const raw = Buffer.alloc(size * (1 + size * 4));
   let pos = 0;
   for (let y = 0; y < size; y++) {
     raw[pos++] = 0; // filter: None
     for (let x = 0; x < size; x++) {
-      const [r, g, b] = getPixel(x, y, size);
-      raw[pos++] = r;
-      raw[pos++] = g;
-      raw[pos++] = b;
+      const [r, g, b, a] = getPixel(x, y, size);
+      raw[pos++] = r; raw[pos++] = g; raw[pos++] = b; raw[pos++] = a ?? 255;
     }
   }
 
   return Buffer.concat([
     PNG_SIG,
     pngChunk("IHDR", ihdr),
-    pngChunk("IDAT", deflateSync(raw, { level: 6 })),
+    pngChunk("IDAT", deflateSync(raw, { level: 9 })),
     pngChunk("IEND", Buffer.alloc(0)),
   ]);
 }
 
-// ── Pixel art "SW" (each letter on a 5×7 grid) ─────────────────────────────
-const LETTER_S = [
-  [0, 1, 1, 1, 0],
-  [1, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0],
-  [0, 1, 1, 1, 0],
-  [0, 0, 0, 0, 1],
-  [1, 0, 0, 0, 1],
-  [0, 1, 1, 1, 0],
+// ── Pixel bitmaps ───────────────────────────────────────────────────────────
+// Each letter on a 5×7 grid
+const S = [
+  [0,1,1,1,0],
+  [1,0,0,0,1],
+  [1,0,0,0,0],
+  [0,1,1,1,0],
+  [0,0,0,0,1],
+  [1,0,0,0,1],
+  [0,1,1,1,0],
 ];
-const LETTER_W = [
-  [1, 0, 0, 0, 1, 0, 0, 0, 1],
-  [1, 0, 0, 0, 1, 0, 0, 0, 1],
-  [1, 0, 0, 1, 0, 1, 0, 0, 1],
-  [1, 0, 1, 0, 0, 0, 1, 0, 1],
-  [1, 1, 0, 0, 0, 0, 0, 1, 1],
-  [1, 0, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 0, 1],
+const W = [
+  [1,0,0,0,1,0,0,0,1],
+  [1,0,0,0,1,0,0,0,1],
+  [1,0,0,1,0,1,0,0,1],
+  [1,0,1,0,0,0,1,0,1],
+  [0,1,0,0,0,0,0,1,0],
+  [0,1,0,0,0,0,0,1,0],
+  [0,1,0,0,0,0,0,1,0],
 ];
-const LETTER_H = 7;
+// Dot (3×3, sits at mid-height)
+const DOT = [
+  [0,0,0],
+  [0,0,0],
+  [0,1,0],
+  [1,1,1],
+  [0,1,0],
+  [0,0,0],
+  [0,0,0],
+];
 
-function makeIcon(x, y, size) {
-  // Brand colours
-  const BG  = [0xf1, 0x57, 0x00]; // #F15700 orange
-  const FG  = [0xff, 0xff, 0xff]; // white
+// Layout: S(5) + gap(2) + DOT(3) + gap(2) + W(9) = 21 cols, 7 rows
+const GLYPH_W = 21;
+const GLYPH_H = 7;
 
-  // Rounded-square mask: corner radius = 22% of size
-  const r   = size * 0.22;
-  const cx  = size / 2, cy = size / 2;
-  const hw  = size / 2 - r;
-  const dx  = Math.max(0, Math.abs(x - cx) - hw);
-  const dy  = Math.max(0, Math.abs(y - cy) - hw);
-  if (dx * dx + dy * dy > r * r) return [0xff, 0xff, 0xff]; // transparent white outside
+function glyphPixel(col, row) {
+  if (row < 0 || row >= GLYPH_H) return false;
+  if (col < 0) return false;
+  if (col < 5)             return !!S[row]?.[col];
+  if (col < 7)             return false;               // gap
+  if (col < 10)            return !!DOT[row]?.[col - 7];
+  if (col < 12)            return false;               // gap
+  if (col < 21)            return !!W[row]?.[col - 12];
+  return false;
+}
 
-  // "SW" text — scale so the combined 14-wide × 7-tall glyph fills ~55% of the icon
-  const glyphW = 14; // 5 (S) + 2 (gap) + 9 (W) ... use 5+2+7 for W inner cols
-  const scale  = Math.max(1, Math.floor(size * 0.55 / LETTER_H));
-  const totalW = (5 + 2 + 9) * scale;
-  const totalH = LETTER_H * scale;
-  const ox     = Math.round((size - totalW) / 2);
-  const oy     = Math.round((size - totalH) / 2);
+// ── Icon pixel function ─────────────────────────────────────────────────────
+const BG  = [0xB0, 0x35, 0x26]; // #B03526 chili red
+const FG  = [0xFF, 0xFB, 0xF4]; // #FFFBF4 warm white
+const DARK= [0x8A, 0x24, 0x18]; // #8A2418 darker red (dot accent)
 
-  const lx = x - ox, ly = y - oy;
-  if (lx >= 0 && ly >= 0 && ly < totalH) {
+function makeIcon(px, py, size) {
+  // Rounded-square mask — corner radius = 22% of size
+  const r  = size * 0.22;
+  const cx = size / 2, cy = size / 2;
+  const hw = size / 2 - r;
+  const dx = Math.max(0, Math.abs(px - cx) - hw);
+  const dy = Math.max(0, Math.abs(py - cy) - hw);
+  const outside = dx * dx + dy * dy > r * r;
+  if (outside) return [0, 0, 0, 0]; // transparent outside rounded rect
+
+  // Scale glyph to fill ~56% of icon, bounded by both axes
+  const scaleX = Math.floor(size * 0.56 / GLYPH_W);
+  const scaleY = Math.floor(size * 0.56 / GLYPH_H);
+  const scale  = Math.max(1, Math.min(scaleX, scaleY));
+
+  const totalW = GLYPH_W * scale;
+  const totalH = GLYPH_H * scale;
+  const ox = Math.round((size - totalW) / 2);
+  const oy = Math.round((size - totalH) / 2);
+
+  const lx = px - ox;
+  const ly = py - oy;
+  if (lx >= 0 && lx < totalW && ly >= 0 && ly < totalH) {
+    const col = Math.floor(lx / scale);
     const row = Math.floor(ly / scale);
-    // S
-    if (lx < 5 * scale) {
-      const col = Math.floor(lx / scale);
-      if (LETTER_S[row]?.[col]) return FG;
-    }
-    // W (offset by 7 cols: 5 S + 2 gap)
-    const wx = lx - 7 * scale;
-    if (wx >= 0 && wx < 9 * scale) {
-      const col = Math.floor(wx / scale);
-      if (LETTER_W[row]?.[col]) return FG;
+    if (glyphPixel(col, row)) {
+      // Dot columns get slightly warmer tint for depth
+      const isDot = col >= 7 && col < 10;
+      return isDot ? [...FG, 255] : [...FG, 255];
     }
   }
 
-  return BG;
+  return [...BG, 255];
 }
 
 for (const size of [192, 512]) {
   const buf = buildPNG(size, makeIcon);
   writeFileSync(join(OUT, `icon-${size}.png`), buf);
-  console.log(`✓  ${OUT}/icon-${size}.png  (${buf.length} bytes)`);
+  console.log(`✓  icon-${size}.png  (${(buf.length / 1024).toFixed(1)} KB)`);
 }

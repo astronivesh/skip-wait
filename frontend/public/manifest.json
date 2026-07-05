@@ -1,11 +1,11 @@
 {
   "name": "Skip Wait",
   "short_name": "SkipWait",
-  "description": "Order food, skip the line, no platform fees.",
+  "description": "Order food ahead, skip the line, no platform fees.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#F15700",
+  "background_color": "#FBF4EA",
+  "theme_color": "#B03526",
   "orientation": "portrait",
   "icons": [
     {
