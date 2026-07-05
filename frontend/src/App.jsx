@@ -1727,21 +1727,33 @@ function Track({ orderId, reset, tableInfo, onBack, kitchenName }) {
         </div>
       )}
 
-      {paymentQr && !done && (
-        <div style={{ background: C.card, margin: "0 12px 12px", borderRadius: 18, padding: 16, border: `1px solid ${C.line}` }}>
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, display: "flex",
-            alignItems: "center", gap: 6 }}>
-            <QrCode size={14} color={C.primary} /> Scan to pay
+      {!done && (
+        paymentQr ? (
+          <div style={{ background: C.card, margin: "0 12px 12px", borderRadius: 18, padding: 16, border: `1px solid ${C.line}` }}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, display: "flex",
+              alignItems: "center", gap: 6 }}>
+              <QrCode size={14} color={C.primary} /> Scan to pay
+            </div>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <img src={paymentQr} alt="Payment QR"
+                style={{ maxWidth: 180, maxHeight: 180, borderRadius: 8,
+                  border: `1px solid ${C.line}` }} />
+            </div>
+            <div style={{ marginTop: 8, fontSize: 12, color: C.sub, textAlign: "center" }}>
+              UPI / PhonePe / GPay · ₹{order.total}
+            </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <img src={paymentQr} alt="Payment QR"
-              style={{ maxWidth: 180, maxHeight: 180, borderRadius: 8,
-                border: `1px solid ${C.line}` }} />
+        ) : (
+          <div style={{ background: C.card, margin: "0 12px 12px", borderRadius: 18, padding: 16, border: `1px solid ${C.line}` }}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, display: "flex",
+              alignItems: "center", gap: 6 }}>
+              <QrCode size={14} color={C.primary} /> Payment
+            </div>
+            <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.5 }}>
+              Pay ₹{order.total} in cash {order.mode === "deliver" ? "to the rider on delivery" : order.mode === "pickup" ? "at the counter on pickup" : "at the restaurant"}. This kitchen hasn't set up UPI/QR payments yet.
+            </div>
           </div>
-          <div style={{ marginTop: 8, fontSize: 12, color: C.sub, textAlign: "center" }}>
-            UPI / PhonePe / GPay · ₹{order.total}
-          </div>
-        </div>
+        )
       )}
 
       {showRider && !done && (
