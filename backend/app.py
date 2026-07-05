@@ -295,14 +295,13 @@ def _porter_address_block(address_str: str, lat: float, lng: float, city: str) -
 # ── SMS (Fast2SMS) ─────────────────────────────────────────────────────────
 
 def _send_otp_sms(phone: str, code: str) -> bool:
-    """Send OTP via Fast2SMS. Returns True if sent, False if key missing or error."""
+    """Send OTP via Fast2SMS's dedicated OTP route (route=otp bypasses DND blocking,
+    unlike the promotional 'q' route). Returns True if sent, False if key missing or error."""
     if not FAST2SMS_KEY:
         return False
     data = json.dumps({
-        "route": "q",
-        "message": f"Your Skip Wait OTP is {code}. Valid for 5 minutes. Do not share.",
-        "language": "english",
-        "flash": 0,
+        "route": "otp",
+        "variables_values": code,
         "numbers": phone,
     }).encode()
     req = urllib.request.Request(
