@@ -525,7 +525,7 @@ function Login({ brand, onLogin }) {
     catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
 
-  const PhoneInput = () => (
+  const PhoneInput = (
     <div style={{ display: "flex", alignItems: "center", gap: 8, border: `1.5px solid ${C.line}`,
       borderRadius: 12, padding: "12px 14px", marginTop: 8, background: C.card }}>
       <span style={{ color: C.sub, fontFamily: MONO }}>+91</span>
@@ -591,7 +591,7 @@ function Login({ brand, onLogin }) {
           step === 1 ? (
             <>
               <label style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>Mobile number</label>
-              <PhoneInput />
+              {PhoneInput}
               <Btn onClick={send} busy={busy} label="Send OTP" />
             </>
           ) : (
@@ -619,7 +619,7 @@ function Login({ brand, onLogin }) {
         ) : (
           <>
             <label style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>Mobile number</label>
-            <PhoneInput />
+            {PhoneInput}
             <label style={{ fontSize: 13, fontWeight: 700, color: C.sub, display: "block", marginTop: 14 }}>
               Password
             </label>
