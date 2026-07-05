@@ -457,6 +457,22 @@ class PasswordLoginIn(BaseModel):
     phone: str
     password: str
 
+class SetPasswordIn(BaseModel):
+    password: str
+
+
+@app.patch("/me/password")
+def set_my_password(body: SetPasswordIn,
+                    authorization: str = Header(default=""),
+                    db: Session = Depends(get_db)):
+    phone = require_auth(authorization, db)
+    if len(body.password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    user = db.get(User, phone)
+    user.hashed_pw = _hash_pw(phone, body.password)
+    db.commit()
+    return {"ok": True}
+
 
 @app.post("/auth/password-login")
 def password_login(body: PasswordLoginIn, db: Session = Depends(get_db)):
@@ -1588,6 +1604,20 @@ def admin_ban_user(phone: str, body: dict, db: Session = Depends(get_db), _: str
     u.is_banned = bool(body.get("banned", True))
     db.commit()
     return {"phone": u.phone, "is_banned": u.is_banned}
+
+
+@app.patch("/admin/users/{phone}/set-password")
+def admin_set_user_password(phone: str, body: SetPasswordIn,
+                             db: Session = Depends(get_db),
+                             _: str = Depends(require_admin)):
+    user = db.get(User, phone)
+    if not user:
+        raise HTTPException(404, "User not found")
+    if len(body.password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    user.hashed_pw = _hash_pw(phone, body.password)
+    db.commit()
+    return {"ok": True}
 
 
 @app.delete("/admin/kitchens/{kid}")

@@ -51,6 +51,9 @@ export const api = {
   requestOtp:         (phone)           => req("POST", "/auth/request-otp",    { phone }),
   verifyOtp:          (phone, code)     => req("POST", "/auth/verify-otp",     { phone, code }),
   adminPasswordLogin: (phone, password) => req("POST", "/auth/password-login", { phone, password }),
+  passwordLogin:      (phone, password) => req("POST", "/auth/password-login", { phone, password }),
+  setMyPassword:      (password)        => req("PATCH", "/me/password",         { password }, true),
+  adminSetUserPassword: (phone, password) => req("PATCH", `/admin/users/${phone}/set-password`, { password }, true),
 
   // kitchen self-registration
   registerKitchen: (data) => req("POST", "/kitchens/register", data, true),

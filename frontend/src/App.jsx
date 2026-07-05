@@ -57,8 +57,77 @@ const shell = {
   borderLeft: `1px solid ${C.line}`, borderRight: `1px solid ${C.line}`,
 };
 
+/* ── set password modal ── */
+function SetPasswordModal({ onClose }) {
+  const [pw,  setPw]  = useState("");
+  const [pw2, setPw2] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg,  setMsg]  = useState("");
+  const [err,  setErr]  = useState("");
+
+  const save = async () => {
+    if (pw.length < 6) return setErr("At least 6 characters");
+    if (pw !== pw2)    return setErr("Passwords don't match");
+    setBusy(true); setErr("");
+    try {
+      await api.setMyPassword(pw);
+      setMsg("Password set! You can now log in with password next time.");
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  };
+
+  const inp = { width: "100%", border: `1.5px solid ${C.line}`, borderRadius: 12,
+    padding: "12px 14px", fontSize: 14, outline: "none", boxSizing: "border-box",
+    background: C.bg, marginTop: 8, marginBottom: 14 };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 40 }} />
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+        width: "100%", maxWidth: 480, background: C.card, borderRadius: "24px 24px 0 0",
+        padding: "22px 24px 40px", zIndex: 50, boxSizing: "border-box" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+          <div style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 18 }}>Set a password</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.sub }}>
+            <X size={20} />
+          </button>
+        </div>
+        <div style={{ fontSize: 13, color: C.sub, marginBottom: 16, lineHeight: 1.5 }}>
+          Set a password so you can log in without OTP next time.
+        </div>
+        {msg ? (
+          <div style={{ background: C.primarySoft, color: C.primary, borderRadius: 12,
+            padding: "14px 16px", fontSize: 14, fontWeight: 600, textAlign: "center" }}>
+            {msg}
+            <br />
+            <button onClick={onClose} style={{ marginTop: 12, background: C.primary, color: "#fff",
+              border: "none", borderRadius: 999, padding: "10px 24px", fontWeight: 800,
+              cursor: "pointer", fontSize: 14 }}>Done</button>
+          </div>
+        ) : (
+          <>
+            <label style={{ fontSize: 12.5, fontWeight: 700, color: C.sub }}>New password</label>
+            <input type="password" value={pw} onChange={(e) => setPw(e.target.value)}
+              placeholder="At least 6 characters" style={inp} />
+            <label style={{ fontSize: 12.5, fontWeight: 700, color: C.sub }}>Confirm password</label>
+            <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)}
+              placeholder="Repeat password" style={{ ...inp, marginBottom: 0 }} />
+            {err && <div style={{ color: C.red, fontSize: 13, fontWeight: 600, marginTop: 8 }}>{err}</div>}
+            <button onClick={save} disabled={busy}
+              style={{ width: "100%", marginTop: 18, background: busy ? C.sub : C.primary,
+                color: "#fff", border: "none", borderRadius: 999, padding: "14px",
+                fontWeight: 800, fontSize: 15, cursor: busy ? "default" : "pointer" }}>
+              {busy ? "Saving…" : "Save password"}
+            </button>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
 /* ── top bar ── */
-function TopBar({ role, brand, onLogout, onHistory }) {
+function TopBar({ role, brand, onLogout, onHistory, onSetPassword }) {
   if (brand && role === "customer") {
     const g = brand.grad || [C.primary, "#E8702A"];
     return (
@@ -83,6 +152,11 @@ function TopBar({ role, brand, onLogout, onHistory }) {
               style={{ cursor: "pointer", border: "none", background: "rgba(255,255,255,.2)",
                 color: "#fff", display: "flex", padding: 7, borderRadius: 8 }}>
               <History size={15} />
+            </button>
+            <button onClick={onSetPassword} title="Set password"
+              style={{ cursor: "pointer", border: "none", background: "rgba(255,255,255,.2)",
+                color: "#fff", display: "flex", padding: 7, borderRadius: 8 }}>
+              <ShieldCheck size={15} />
             </button>
             <button onClick={onLogout} title="Log out"
               style={{ cursor: "pointer", border: "none", background: "rgba(255,255,255,.2)",
@@ -113,9 +187,14 @@ function TopBar({ role, brand, onLogout, onHistory }) {
           {badge.label}
         </span>
         {role === "customer" && (
-          <button onClick={onHistory} title="My orders"
-            style={{ cursor: "pointer", border: "none", background: "transparent", color: C.sub,
-              display: "flex", padding: 4 }}><History size={15} /></button>
+          <>
+            <button onClick={onHistory} title="My orders"
+              style={{ cursor: "pointer", border: "none", background: "transparent", color: C.sub,
+                display: "flex", padding: 4 }}><History size={15} /></button>
+            <button onClick={onSetPassword} title="Set password"
+              style={{ cursor: "pointer", border: "none", background: "transparent", color: C.sub,
+                display: "flex", padding: 4 }}><ShieldCheck size={15} /></button>
+          </>
         )}
         <button onClick={onLogout} title="Log out"
           style={{ cursor: "pointer", border: "none", background: "transparent", color: C.sub,
@@ -172,6 +251,7 @@ export default function App({ tableToken, kitchenSlug, sharedOrderId }) {
     );
 
   const [showHistory,   setShowHistory]   = useState(false);
+  const [showSetPw,     setShowSetPw]     = useState(false);
   const [reorderIntent, setReorderIntent] = useState(null);
   const [showRegister,  setShowRegister]  = useState(false);
 
@@ -187,7 +267,9 @@ export default function App({ tableToken, kitchenSlug, sharedOrderId }) {
   return (
     <div style={{ fontFamily: SANS, color: C.text, ...shell, padding: 0 }}>
       <TopBar role={role} brand={brand} onLogout={logout}
-        onHistory={() => setShowHistory(true)} />
+        onHistory={() => setShowHistory(true)}
+        onSetPassword={() => setShowSetPw(true)} />
+      {showSetPw && <SetPasswordModal onClose={() => setShowSetPw(false)} />}
       {role === "admin"   && <AdminView />}
       {role === "kitchen" && <KitchenView kitchenId={kitchenId} />}
       {role === "customer" && (
@@ -402,12 +484,17 @@ function AdminCreateKitchenModal({ onDone, onClose }) {
 
 /* ── login ── */
 function Login({ brand, onLogin }) {
+  const [tab,    setTab]    = useState("otp");    // "otp" | "password"
   const [phone,  setPhone]  = useState("");
   const [code,   setCode]   = useState("");
+  const [pw,     setPw]     = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [devOtp, setDevOtp] = useState(null);
   const [step,   setStep]   = useState(1);
   const [busy,   setBusy]   = useState(false);
   const [err,    setErr]    = useState("");
+
+  const switchTab = (t) => { setTab(t); setErr(""); setStep(1); setCode(""); setDevOtp(null); };
 
   const send = async () => {
     if (phone.length < 10) return setErr("Enter a 10-digit number");
@@ -425,6 +512,29 @@ function Login({ brand, onLogin }) {
     }
     catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
+  const loginWithPassword = async () => {
+    if (phone.length < 10) return setErr("Enter a 10-digit number");
+    if (!pw) return setErr("Enter your password");
+    setBusy(true); setErr("");
+    try {
+      const r = await api.passwordLogin(phone, pw);
+      setSession(r.token, r.role, r.kitchen_id);
+      setPhone(phone);
+      onLogin(r.role, r.kitchen_id);
+    }
+    catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+
+  const PhoneInput = () => (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, border: `1.5px solid ${C.line}`,
+      borderRadius: 12, padding: "12px 14px", marginTop: 8, background: C.card }}>
+      <span style={{ color: C.sub, fontFamily: MONO }}>+91</span>
+      <input value={phone} inputMode="numeric" placeholder="9876543210"
+        onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+        style={{ border: "none", outline: "none", fontSize: 16, flex: 1, fontFamily: MONO,
+          background: "transparent" }} />
+    </div>
+  );
 
   const g = brand?.grad;
   return (
@@ -432,7 +542,7 @@ function Login({ brand, onLogin }) {
       {brand ? (
         <div style={{ background: g ? `linear-gradient(135deg,${g[0]},${g[1]})` : C.primary,
           padding: "40px 28px 28px", color: "#fff" }}>
-          <div style={{ fontWeight: 800, fontSize: 26 }}>{brand.kitchen_name}</div>
+          <div style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 26, letterSpacing: "-.02em" }}>{brand.kitchen_name}</div>
           {brand.kitchen_tag && (
             <div style={{ fontSize: 13, opacity: .85, marginTop: 3 }}>{brand.kitchen_tag}</div>
           )}
@@ -451,9 +561,8 @@ function Login({ brand, onLogin }) {
           </div>
         </div>
       ) : (
-        <div style={{ padding: "60px 28px 0" }}>
-          <div style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 34, letterSpacing: "-0.02em",
-            color: C.text }}>
+        <div style={{ padding: "52px 28px 0" }}>
+          <div style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 34, letterSpacing: "-0.02em", color: C.text }}>
             skip<span style={{ color: C.primary }}>·</span>wait
           </div>
           <div style={{ color: C.sub, marginTop: 6, fontSize: 14.5, lineHeight: 1.5 }}>
@@ -461,43 +570,84 @@ function Login({ brand, onLogin }) {
           </div>
         </div>
       )}
-      <div style={{ padding: "28px 28px 40px" }}>
-        {step === 1 ? (
-          <>
-            <label style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>Mobile number</label>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, border: `1.5px solid ${C.line}`,
-              borderRadius: 12, padding: "12px 14px", marginTop: 8 }}>
-              <span style={{ color: C.sub, fontFamily: MONO }}>+91</span>
-              <input value={phone} inputMode="numeric" placeholder="9876543210"
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                style={{ border: "none", outline: "none", fontSize: 16, flex: 1, fontFamily: MONO }} />
-            </div>
-            <Btn onClick={send} busy={busy} label="Send OTP" />
-          </>
+
+      {/* tab switcher */}
+      <div style={{ display: "flex", margin: "24px 28px 0", background: C.panel,
+        borderRadius: 999, padding: 4, gap: 4 }}>
+        {[["otp", "OTP"], ["password", "Password"]].map(([t, label]) => (
+          <button key={t} onClick={() => switchTab(t)}
+            style={{ flex: 1, border: "none", cursor: "pointer", borderRadius: 999, padding: "8px 0",
+              fontWeight: 700, fontSize: 13, transition: "all .2s",
+              background: tab === t ? C.card : "transparent",
+              color: tab === t ? C.text : C.sub,
+              boxShadow: tab === t ? "0 2px 8px rgba(43,30,22,.1)" : "none" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding: "20px 28px 40px" }}>
+        {tab === "otp" ? (
+          step === 1 ? (
+            <>
+              <label style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>Mobile number</label>
+              <PhoneInput />
+              <Btn onClick={send} busy={busy} label="Send OTP" />
+            </>
+          ) : (
+            <>
+              <label style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>
+                Code sent to +91 {phone}
+              </label>
+              {devOtp && (
+                <div style={{ marginTop: 8, fontSize: 12.5, color: C.primary, background: C.primarySoft,
+                  padding: "8px 12px", borderRadius: 10 }}>
+                  Dev OTP: <b style={{ fontFamily: MONO }}>{devOtp}</b>
+                </div>
+              )}
+              <input value={code} inputMode="numeric" placeholder="• • • •"
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                style={{ width: "100%", marginTop: 12, padding: "13px", borderRadius: 12, fontFamily: MONO,
+                  fontSize: 22, letterSpacing: "10px", textAlign: "center", border: `1.5px solid ${C.line}`,
+                  outline: "none", boxSizing: "border-box", background: C.card }} />
+              <Btn onClick={verify} busy={busy} label="Verify & continue" />
+              <button onClick={() => { setStep(1); setCode(""); }}
+                style={{ background: "none", border: "none", color: C.sub, marginTop: 14,
+                  cursor: "pointer", fontSize: 13 }}>← Change number</button>
+            </>
+          )
         ) : (
           <>
-            <label style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>
-              Code sent to +91 {phone}
+            <label style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>Mobile number</label>
+            <PhoneInput />
+            <label style={{ fontSize: 13, fontWeight: 700, color: C.sub, display: "block", marginTop: 14 }}>
+              Password
             </label>
-            {devOtp && (
-              <div style={{ marginTop: 8, fontSize: 12.5, color: C.primary, background: C.primarySoft,
-                padding: "8px 12px", borderRadius: 10 }}>
-                Dev mode — your code is <b style={{ fontFamily: MONO }}>{devOtp}</b>
-              </div>
-            )}
-            <input value={code} inputMode="numeric" placeholder="• • • •"
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              style={{ width: "100%", marginTop: 12, padding: "13px", borderRadius: 12, fontFamily: MONO,
-                fontSize: 22, letterSpacing: "10px", textAlign: "center", border: `1.5px solid ${C.line}`,
-                outline: "none", boxSizing: "border-box" }} />
-            <Btn onClick={verify} busy={busy} label="Verify & continue" />
-            <button onClick={() => { setStep(1); setCode(""); }}
-              style={{ background: "none", border: "none", color: C.sub, marginTop: 14, cursor: "pointer",
-                fontSize: 13 }}>← Change number</button>
+            <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${C.line}`,
+              borderRadius: 12, padding: "12px 14px", marginTop: 8, background: C.card }}>
+              <input value={pw} type={showPw ? "text" : "password"} placeholder="••••••••"
+                onKeyDown={(e) => e.key === "Enter" && loginWithPassword()}
+                onChange={(e) => setPw(e.target.value)}
+                style={{ border: "none", outline: "none", fontSize: 15, flex: 1, background: "transparent" }} />
+              <button onClick={() => setShowPw(v => !v)}
+                style={{ background: "none", border: "none", cursor: "pointer",
+                  color: C.sub, fontSize: 12, padding: "0 4px" }}>
+                {showPw ? "Hide" : "Show"}
+              </button>
+            </div>
+            <Btn onClick={loginWithPassword} busy={busy} label="Sign in" />
+            <div style={{ marginTop: 12, fontSize: 12, color: C.sub, textAlign: "center" }}>
+              Don't have a password?{" "}
+              <button onClick={() => switchTab("otp")}
+                style={{ background: "none", border: "none", color: C.primary, cursor: "pointer",
+                  fontWeight: 700, fontSize: 12, padding: 0 }}>
+                Use OTP instead
+              </button>
+            </div>
           </>
         )}
         {err && <div style={{ color: C.red, fontSize: 13, marginTop: 12, fontWeight: 600 }}>{err}</div>}
-        <div style={{ marginTop: 24, textAlign: "center", fontSize: 12, color: C.sub }}>
+        <div style={{ marginTop: 20, textAlign: "center", fontSize: 12, color: C.sub }}>
           By continuing you agree to our{" "}
           <a href="/privacy" style={{ color: C.primary, textDecoration: "none", fontWeight: 600 }}>
             Privacy Policy
