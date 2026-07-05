@@ -18,6 +18,7 @@ const C = {
 const SANS    = `'Schibsted Grotesk',system-ui,-apple-system,sans-serif`;
 const DISPLAY = `'Bricolage Grotesque',system-ui,sans-serif`;
 const MONO    = `ui-monospace,"SF Mono",Menlo,monospace`;
+const DINE_IN_ENABLED = false; // temporarily disabled — dine-in is "coming soon"
 
 const FLOW = {
   pickup:  ["Order placed", "Preparing", "Ready for pickup", "Picked up"],
@@ -673,8 +674,8 @@ function loadSavedCart() {
 }
 
 function CustomerView({ brand, tableToken, reorderIntent, clearReorder, onRegister }) {
-  // derive tableInfo shape from brand (only when it has table_id)
-  const tableInfo = brand?.table_id ? brand : null;
+  // derive tableInfo shape from brand (only when it has table_id) — disabled while dine-in is "coming soon"
+  const tableInfo = DINE_IN_ENABLED && brand?.table_id ? brand : null;
   const brandKid  = brand?.kitchen_id || null;   // set for both table QR and /k/ link
 
   const saved = loadSavedCart();
@@ -1275,18 +1276,24 @@ function Cart({ kid, lines, foodTotal, mode, setMode, arrival, setArrival, table
           <>
             <div style={{ display: "flex", background: C.panel, borderRadius: 999, padding: 4, gap: 4 }}>
               {[
-                ["pickup",  Timer,           "Pick Up"],
-                ["deliver", Bike,            "Delivery"],
-                ["dine_in", UtensilsCrossed, "Dine-in"],
-              ].map(([m, Icon, t]) => (
-                <button key={m} onClick={() => { setMode(m); setSelectedTid(null); }}
-                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-                    gap: 5, cursor: "pointer", borderRadius: 999, padding: "9px 6px", border: "none",
+                ["pickup",  Timer,           "Pick Up",  true],
+                ["deliver", Bike,            "Delivery", true],
+                ["dine_in", UtensilsCrossed, "Dine-in",  DINE_IN_ENABLED],
+              ].map(([m, Icon, t, enabled]) => (
+                <button key={m} disabled={!enabled}
+                  onClick={() => { if (!enabled) return; setMode(m); }}
+                  style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+                    justifyContent: "center", gap: 2, cursor: enabled ? "pointer" : "default",
+                    borderRadius: 999, padding: "7px 6px", border: "none",
                     fontWeight: 700, fontSize: 13, transition: "all .25s",
                     background: mode === m ? C.primary : "transparent",
-                    color: mode === m ? "#fff" : C.sub,
+                    color: !enabled ? C.line : (mode === m ? "#fff" : C.sub),
+                    opacity: enabled ? 1 : .55,
                     boxShadow: mode === m ? "0 3px 10px rgba(43,30,22,.18)" : "none" }}>
-                  <Icon size={14} /> {t}
+                  <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <Icon size={14} /> {t}
+                  </span>
+                  {!enabled && <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".03em" }}>COMING SOON</span>}
                 </button>
               ))}
             </div>
