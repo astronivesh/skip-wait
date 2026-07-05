@@ -883,9 +883,7 @@ def create_order(body: OrderIn, phone: str = Depends(current_phone),
         raise HTTPException(400, "Delivery address is required")
 
     table_label = None
-    if body.mode == "dine_in":
-        if not body.table_id:
-            raise HTTPException(400, "table_id required for dine_in")
+    if body.mode == "dine_in" and body.table_id:
         t = db.get(DineTable, body.table_id)
         if not t or t.kitchen_id != body.kitchen_id:
             raise HTTPException(400, "Invalid table")

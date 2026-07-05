@@ -1178,22 +1178,46 @@ function Cart({ kid, lines, foodTotal, mode, setMode, arrival, setArrival, table
   const [savedAddrs,  setSavedAddrs] = useState([]);
   const [saveLabel,   setSaveLabel]  = useState("");
   const [showSave,    setShowSave]   = useState(false);
-  const [tables,      setTables]      = useState([]);
-  const [selectedTid, setSelectedTid] = useState(null);
   const [promoInput,   setPromoInput]   = useState("");
   const [promoApplied, setPromoApplied] = useState(null);
   const [promoErr,     setPromoErr]     = useState("");
   const [addrSuggestions, setAddrSuggestions] = useState([]);
+  const [addrType,    setAddrType]    = useState("Home");
+  const [pincode,     setPincode]     = useState("");
+  const [locating,    setLocating]    = useState(false);
+  const [locErr,      setLocErr]      = useState("");
   const addrTimer = React.useRef(null);
 
   useEffect(() => {
     if (mode === "deliver") {
       api.listAddresses().then(setSavedAddrs).catch(() => {});
     }
-    if (mode === "dine_in" && !tableInfo) {
-      api.publicTables(kid).then(setTables).catch(() => {});
-    }
   }, [mode]);
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) { setLocErr("Location not supported on this device"); return; }
+    setLocating(true); setLocErr("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude: lat, longitude: lon } = pos.coords;
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+            { headers: { "Accept-Language": "en", "User-Agent": "SkipWait/1.0" } }
+          );
+          const data = await res.json();
+          setAddress(data.display_name || "");
+          const pc = data.address?.postcode || "";
+          if (pc) setPincode(pc);
+        } catch {
+          setLocErr("Couldn't detect your address, please enter it manually");
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => { setLocErr("Location permission denied — enter address manually"); setLocating(false); }
+    );
+  };
   const b      = bill(foodTotal, mode);
   const saving = Math.round(17.58 + (mode === "deliver" ? 49 : 0) + foodTotal * 0.12 - 5);
 
@@ -1201,15 +1225,18 @@ function Cart({ kid, lines, foodTotal, mode, setMode, arrival, setArrival, table
     if (mode === "deliver" && !address.trim()) {
       setErr("Please enter a delivery address"); return;
     }
-    if (mode === "dine_in" && !tableInfo && !selectedTid) {
-      setErr("Please select a table"); return;
+    if (mode === "deliver" && !pincode.trim()) {
+      setErr("Please enter a pincode"); return;
     }
     setBusy(true); setErr("");
     try {
+      const fullAddress = mode === "deliver"
+        ? `${address.trim()}${pincode.trim() ? " — " + pincode.trim() : ""} (${addrType})`
+        : null;
       const o = await api.createOrder({
         kitchen_id: kid, mode, arrival,
-        table_id: tableInfo?.table_id || (mode === "dine_in" ? selectedTid : null),
-        delivery_address: mode === "deliver" ? address.trim() : null,
+        table_id: tableInfo?.table_id || null,
+        delivery_address: fullAddress,
         promo_code: promoApplied?.code || null,
         items: lines.map((l) => {
           const parts = l.id.split("__");
@@ -1276,26 +1303,17 @@ function Cart({ kid, lines, foodTotal, mode, setMode, arrival, setArrival, table
 
         {mode === "dine_in" && !tableInfo && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: C.sub, marginBottom: 8 }}>
-              Select your table
+            <div style={{ fontSize: 12.5, color: C.sub, marginBottom: 8 }}>
+              When will you arrive? Your table will be booked and ready — staff will seat you.</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[10, 20, 30].map((m) => (
+                <button key={m} onClick={() => setArrival(m)} style={{ flex: 1, cursor: "pointer",
+                  borderRadius: 9, padding: "9px 0", fontWeight: 800, fontFamily: MONO, fontSize: 13.5,
+                  border: `1.5px solid ${arrival === m ? C.primary : C.line}`,
+                  background: arrival === m ? C.primarySoft : "#fff",
+                  color: arrival === m ? C.primary : C.text }}>{m} min</button>
+              ))}
             </div>
-            {tables.length === 0 ? (
-              <div style={{ fontSize: 13, color: C.sub }}>No tables set up for this kitchen yet.</div>
-            ) : (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {tables.map((t) => (
-                  <button key={t.id} onClick={() => setSelectedTid(t.id)}
-                    style={{ border: `1.5px solid ${selectedTid === t.id ? C.primary : C.line}`,
-                      background: selectedTid === t.id ? C.primarySoft : "#fff",
-                      borderRadius: 10, padding: "9px 14px", fontWeight: 700, fontSize: 13.5,
-                      cursor: "pointer", color: selectedTid === t.id ? C.primary : C.text,
-                      display: "flex", alignItems: "center", gap: 6 }}>
-                    <UtensilsCrossed size={13} style={{ color: selectedTid === t.id ? C.primary : C.sub }} />
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
@@ -1316,9 +1334,20 @@ function Cart({ kid, lines, foodTotal, mode, setMode, arrival, setArrival, table
         )}
         {mode === "deliver" && !tableInfo && (
           <div style={{ marginTop: 12 }}>
-            <label style={{ fontSize: 12.5, fontWeight: 700, color: C.sub }}>
-              Delivery address
-            </label>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <label style={{ fontSize: 12.5, fontWeight: 700, color: C.sub }}>
+                Delivery address
+              </label>
+              <button onClick={detectLocation} disabled={locating}
+                style={{ display: "flex", alignItems: "center", gap: 5, background: "none",
+                  border: "none", color: C.primary, fontSize: 12.5, fontWeight: 700,
+                  cursor: locating ? "default" : "pointer", padding: 0, opacity: locating ? .6 : 1 }}>
+                <MapPin size={13} /> {locating ? "Detecting…" : "Use current location"}
+              </button>
+            </div>
+            {locErr && (
+              <div style={{ fontSize: 11.5, color: C.primary, marginTop: 4 }}>{locErr}</div>
+            )}
             {savedAddrs.length > 0 && (
               <div style={{ display: "flex", gap: 7, marginTop: 8, flexWrap: "wrap" }}>
                 {savedAddrs.map((a) => (
@@ -1334,6 +1363,16 @@ function Cart({ kid, lines, foodTotal, mode, setMode, arrival, setArrival, table
                 ))}
               </div>
             )}
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              {["Home", "Work", "Other"].map((t) => (
+                <button key={t} onClick={() => setAddrType(t)}
+                  style={{ flex: 1, cursor: "pointer", borderRadius: 9, padding: "7px 0",
+                    fontWeight: 700, fontSize: 12.5,
+                    border: `1.5px solid ${addrType === t ? C.primary : C.line}`,
+                    background: addrType === t ? C.primarySoft : "#fff",
+                    color: addrType === t ? C.primary : C.text }}>{t}</button>
+              ))}
+            </div>
             <div style={{ position: "relative" }}>
               <textarea
                 value={address}
@@ -1375,6 +1414,16 @@ function Cart({ kid, lines, foodTotal, mode, setMode, arrival, setArrival, table
                 </div>
               )}
             </div>
+            <input
+              value={pincode}
+              onChange={(e) => setPincode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+              placeholder="Pincode"
+              inputMode="numeric"
+              style={{ width: "100%", marginTop: 8, padding: "10px 12px",
+                border: `1.5px solid ${pincode.trim() ? C.primary : C.line}`,
+                borderRadius: 10, fontSize: 13.5, outline: "none",
+                boxSizing: "border-box", fontFamily: SANS }}
+            />
             {address.trim() && !savedAddrs.some((a) => a.address === address) && (
               <div style={{ marginTop: 6 }}>
                 {!showSave ? (
