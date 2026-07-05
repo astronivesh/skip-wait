@@ -4,6 +4,8 @@ backend/__pycache__/
 backend/*.pyc
 backend/skipwait.db
 backend/.env
+.pythonlibs/
+uv.lock
 
 # Node
 frontend/node_modules/

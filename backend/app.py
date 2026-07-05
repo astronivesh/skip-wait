@@ -27,8 +27,8 @@ from sqlalchemy import (create_engine, Column, Integer, String, Boolean,
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
 
 # On Railway, mount a volume at /data — DB lives there so it survives redeploys.
-# Locally it falls back to the current directory.
-_DB_DIR = os.getenv("DB_DIR", ".")
+# Locally it falls back to this file's own directory (so cwd doesn't matter).
+_DB_DIR = os.getenv("DB_DIR", os.path.dirname(os.path.abspath(__file__)))
 DB_URL  = f"sqlite:///{_DB_DIR}/skipwait.db"
 engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
@@ -441,6 +441,8 @@ app = FastAPI(title="Skip Wait API")
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
 )
+
+_FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
 
 
 # ── password auth helpers ──────────────────────────────────────────────────
@@ -1741,6 +1743,20 @@ def seed():
         real_admin.hashed_pw = ADMIN_PW_HASH
     db.commit()
     db.close()
+
+# ── serve built frontend in production (if present) ────────────────────────
+if os.path.isdir(_FRONTEND_DIST):
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.responses import FileResponse
+
+    app.mount("/assets", StaticFiles(directory=os.path.join(_FRONTEND_DIST, "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    def _serve_frontend(full_path: str):
+        candidate = os.path.join(_FRONTEND_DIST, full_path)
+        if full_path and os.path.isfile(candidate):
+            return FileResponse(candidate)
+        return FileResponse(os.path.join(_FRONTEND_DIST, "index.html"))
 
 
 seed()
