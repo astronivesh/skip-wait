@@ -73,6 +73,7 @@ export const api = {
   kitchenOrders:    (kid) => req("GET", `/kitchens/${kid}/orders`),
   kitchenAnalytics: (kid) => req("GET", `/kitchens/${kid}/analytics`, undefined, true),
   advance:       (oid, otp) => req("POST", `/orders/${oid}/advance`, { otp: otp || null }),
+  confirmPayment: (oid) => req("POST", `/orders/${oid}/confirm-payment`, undefined, true),
   assignRider:   (oid, name, veh) => req("PATCH", `/orders/${oid}/rider`, { name, veh }),
   rateOrder:     (oid, rating)   => req("POST",  `/orders/${oid}/rate`,   { rating }, true),
   cancelOrder:   (oid)           => req("POST",  `/orders/${oid}/cancel`,  undefined, true),

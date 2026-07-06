@@ -139,6 +139,7 @@ class Order(Base):
     cancelled         = Column(Boolean, default=False)
     promo_code        = Column(String, nullable=True)
     discount          = Column(Integer, default=0)
+    payment_confirmed = Column(Boolean, default=False)
     created_at        = Column(DateTime, default=datetime.utcnow)
     items             = relationship("OrderItem", back_populates="order")
     removals          = relationship("OrderItemRemoval", back_populates="order",
@@ -227,6 +228,7 @@ def _add_column_if_missing(table: str, col: str, col_def: str):
 
 _add_column_if_missing("kitchens", "payment_qr",          "TEXT")
 _add_column_if_missing("kitchens", "location_address",    "TEXT")
+_add_column_if_missing("orders",   "payment_confirmed",    "BOOLEAN DEFAULT 0")
 _add_column_if_missing("orders",   "porter_order_id",     "TEXT")
 _add_column_if_missing("orders",   "porter_tracking_url", "TEXT")
 _add_column_if_missing("users",    "hashed_pw",           "TEXT")
@@ -844,6 +846,7 @@ def serialize(o: Order):
         "cancelled":    o.cancelled or False,
         "promo_code":   o.promo_code,
         "discount":     o.discount or 0,
+        "payment_confirmed": o.payment_confirmed or False,
         "customer_phone": o.customer_phone,
         "items": [{"item_id": it.id, "id": it.menu_item_id, "name": it.name,
                    "price": it.price, "qty": it.qty, "veg": it.veg,
@@ -1125,11 +1128,30 @@ def advance(oid: str, body: AdvanceIn, db: Session = Depends(get_db)):
     if o.status_index >= len(flow) - 1:
         raise HTTPException(400, "Order already complete")
 
+    if o.status_index == 0 and not o.payment_confirmed:
+        raise HTTPException(400, "Confirm payment received before starting preparation")
+
     moving_to_final = o.status_index == len(flow) - 2
     if moving_to_final and o.mode == "pickup":
         if not body.otp or body.otp != o.otp:
             raise HTTPException(403, "Pickup code does not match")
 
+    o.status_index += 1
+    db.commit()
+    db.refresh(o)
+    return serialize(o)
+
+
+@app.post("/orders/{oid}/confirm-payment")
+def confirm_payment(oid: str, authorization: str = Header(default=""),
+                     db: Session = Depends(get_db)):
+    o = db.get(Order, oid)
+    if not o:
+        raise HTTPException(404, "Order not found")
+    verify_kitchen_owner(o.kitchen_id, authorization, db)
+    if o.status_index != 0:
+        raise HTTPException(400, "Payment already confirmed for this order")
+    o.payment_confirmed = True
     o.status_index += 1
     db.commit()
     db.refresh(o)

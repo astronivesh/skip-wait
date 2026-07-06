@@ -3,7 +3,7 @@ import {
   Search, MapPin, ChevronLeft, ChevronRight, Star, Plus, Minus,
   Phone, Clock, Bike, ShoppingBag, Check, ShieldCheck, Timer, LogOut,
   Pencil, Trash2, Tag, QrCode, UtensilsCrossed, X, History,
-  Eye, EyeOff, Power, Image, TrendingUp,
+  Eye, EyeOff, Power, Image, TrendingUp, User,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { api, getToken, getRole, getKitchenId, getPhone, setPhone, setSession, clearSession } from "./api.js";
@@ -127,8 +127,98 @@ function SetPasswordModal({ onClose }) {
   );
 }
 
+/* ── profile (saved addresses) ── */
+function ProfileModal({ onClose }) {
+  const [addrs,  setAddrs]  = useState([]);
+  const [label,  setLabel]  = useState("");
+  const [addr,   setAddr]   = useState("");
+  const [busy,   setBusy]   = useState(false);
+  const [err,    setErr]    = useState("");
+
+  useEffect(() => { api.listAddresses().then(setAddrs).catch(() => {}); }, []);
+
+  const add = async () => {
+    if (!label.trim() || !addr.trim()) return setErr("Enter a label and address");
+    setBusy(true); setErr("");
+    try {
+      const saved = await api.addAddress(label.trim(), addr.trim());
+      setAddrs((a) => [...a, saved]);
+      setLabel(""); setAddr("");
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  };
+
+  const remove = async (aid) => {
+    try { await api.deleteAddress(aid); setAddrs((a) => a.filter((x) => x.id !== aid)); }
+    catch (e) { setErr(e.message); }
+  };
+
+  const inp = { width: "100%", border: `1.5px solid ${C.line}`, borderRadius: 12,
+    padding: "12px 14px", fontSize: 14, outline: "none", boxSizing: "border-box",
+    background: C.bg, marginTop: 8, marginBottom: 14 };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 40 }} />
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+        width: "100%", maxWidth: 480, background: C.card, borderRadius: "24px 24px 0 0",
+        padding: "22px 24px 40px", zIndex: 50, boxSizing: "border-box",
+        maxHeight: "85vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <div style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 18 }}>My profile</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.sub }}>
+            <X size={20} />
+          </button>
+        </div>
+        <div style={{ fontSize: 13, color: C.sub, marginBottom: 18, fontFamily: MONO }}>
+          +91 {getPhone()}
+        </div>
+
+        <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10 }}>Saved addresses</div>
+        {addrs.length === 0 && (
+          <div style={{ fontSize: 12.5, color: C.sub, marginBottom: 14 }}>
+            No saved addresses yet. Add one below for faster checkout.
+          </div>
+        )}
+        {addrs.map((a) => (
+          <div key={a.id} style={{ display: "flex", alignItems: "flex-start", gap: 10,
+            background: C.panel, borderRadius: 12, padding: "10px 12px", marginBottom: 8 }}>
+            <MapPin size={15} style={{ color: C.primary, flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 13 }}>{a.label}</div>
+              <div style={{ fontSize: 12, color: C.sub, marginTop: 2, lineHeight: 1.4 }}>{a.address}</div>
+            </div>
+            <button onClick={() => remove(a.id)} title="Delete address"
+              style={{ background: "none", border: "none", cursor: "pointer", color: C.sub, flexShrink: 0 }}>
+              <Trash2 size={15} />
+            </button>
+          </div>
+        ))}
+
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.line}` }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>Add a new address</div>
+          <label style={{ fontSize: 12.5, fontWeight: 700, color: C.sub }}>Label</label>
+          <input value={label} onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Home, Office" style={inp} />
+          <label style={{ fontSize: 12.5, fontWeight: 700, color: C.sub }}>Address</label>
+          <textarea value={addr} onChange={(e) => setAddr(e.target.value)} rows={3}
+            placeholder="Flat / house no., street, area, landmark…"
+            style={{ ...inp, resize: "none", fontFamily: SANS }} />
+          {err && <div style={{ color: C.red, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{err}</div>}
+          <button onClick={add} disabled={busy}
+            style={{ width: "100%", background: busy ? C.sub : C.primary,
+              color: "#fff", border: "none", borderRadius: 999, padding: "14px",
+              fontWeight: 800, fontSize: 15, cursor: busy ? "default" : "pointer" }}>
+            {busy ? "Saving…" : "Save address"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ── top bar ── */
-function TopBar({ role, brand, onLogout, onHistory, onSetPassword }) {
+function TopBar({ role, brand, onLogout, onHistory, onSetPassword, onProfile }) {
   if (brand && role === "customer") {
     const g = brand.grad || [C.primary, "#E8702A"];
     return (
@@ -149,6 +239,11 @@ function TopBar({ role, brand, onLogout, onHistory, onSetPassword }) {
             )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 2 }}>
+            <button onClick={onProfile} title="My profile"
+              style={{ cursor: "pointer", border: "none", background: "rgba(255,255,255,.2)",
+                color: "#fff", display: "flex", padding: 7, borderRadius: 8 }}>
+              <User size={15} />
+            </button>
             <button onClick={onHistory} title="My orders"
               style={{ cursor: "pointer", border: "none", background: "rgba(255,255,255,.2)",
                 color: "#fff", display: "flex", padding: 7, borderRadius: 8 }}>
@@ -189,6 +284,9 @@ function TopBar({ role, brand, onLogout, onHistory, onSetPassword }) {
         </span>
         {role === "customer" && (
           <>
+            <button onClick={onProfile} title="My profile"
+              style={{ cursor: "pointer", border: "none", background: "transparent", color: C.sub,
+                display: "flex", padding: 4 }}><User size={15} /></button>
             <button onClick={onHistory} title="My orders"
               style={{ cursor: "pointer", border: "none", background: "transparent", color: C.sub,
                 display: "flex", padding: 4 }}><History size={15} /></button>
@@ -214,6 +312,7 @@ export default function App({ tableToken, kitchenSlug, sharedOrderId }) {
   const [brand,     setBrand]     = useState(null);
   const [showHistory,   setShowHistory]   = useState(false);
   const [showSetPw,     setShowSetPw]     = useState(false);
+  const [showProfile,   setShowProfile]   = useState(false);
   const [reorderIntent, setReorderIntent] = useState(null);
   const [showRegister,  setShowRegister]  = useState(false);
 
@@ -270,8 +369,10 @@ export default function App({ tableToken, kitchenSlug, sharedOrderId }) {
     <div style={{ fontFamily: SANS, color: C.text, ...shell, padding: 0 }}>
       <TopBar role={role} brand={brand} onLogout={logout}
         onHistory={() => setShowHistory(true)}
-        onSetPassword={() => setShowSetPw(true)} />
+        onSetPassword={() => setShowSetPw(true)}
+        onProfile={() => setShowProfile(true)} />
       {showSetPw && <SetPasswordModal onClose={() => setShowSetPw(false)} />}
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
       {role === "admin"   && <AdminView />}
       {role === "kitchen" && <KitchenView kitchenId={kitchenId} />}
       {role === "customer" && (
@@ -1769,6 +1870,23 @@ function Track({ orderId, reset, tableInfo, onBack, kitchenName }) {
         )
       )}
 
+      {!done && idx === 0 && (
+        <div style={{ margin: "0 12px 12px", borderRadius: 18, padding: 16,
+          background: order.payment_confirmed ? "rgba(38,126,62,.08)" : C.primarySoft,
+          border: `1px solid ${order.payment_confirmed ? "rgba(38,126,62,.25)" : C.primaryBorder}`,
+          display: "flex", alignItems: "center", gap: 10 }}>
+          {order.payment_confirmed
+            ? <Check size={18} style={{ color: C.rating, flexShrink: 0 }} />
+            : <Clock size={18} style={{ color: C.primary, flexShrink: 0 }} />}
+          <div style={{ fontSize: 13, fontWeight: 700,
+            color: order.payment_confirmed ? C.rating : C.primary }}>
+            {order.payment_confirmed
+              ? "Payment confirmed — kitchen is preparing your order"
+              : "Waiting for the restaurant to confirm your payment"}
+          </div>
+        </div>
+      )}
+
       {showRider && !done && (
         <div style={{ background: C.card, margin: "0 12px 12px", borderRadius: 18, padding: 16,
           border: `1px solid ${C.line}`, display: "flex", alignItems: "center", gap: 12 }}>
@@ -2581,7 +2699,7 @@ function KitchenOrder({ o, onChanged }) {
   const isHandoff   = idx === flow.length - 2;
   const needsOtp    = isHandoff && o.mode === "pickup";
   const needsRider  = idx === 1 && o.mode === "deliver";
-  const action = idx === 0 ? "Accept order"
+  const action = idx === 0 ? "Payment received — start preparing"
     : idx === 1 ? (o.mode === "pickup" ? "Mark ready for pickup" : o.mode === "dine_in" ? "Mark served" : "Hand to rider")
     : (o.mode === "pickup" ? "Confirm pickup" : o.mode === "dine_in" ? "Mark completed" : "Confirm delivery");
 
@@ -2607,7 +2725,11 @@ function KitchenOrder({ o, onChanged }) {
       setBusy(false);
     }
     setBusy(true); setErr(false);
-    try { await api.advance(o.id, needsOtp ? otp : null); setOtp(""); setShowRiderForm(false); onChanged(); }
+    try {
+      if (idx === 0) await api.confirmPayment(o.id);
+      else await api.advance(o.id, needsOtp ? otp : null);
+      setOtp(""); setShowRiderForm(false); onChanged();
+    }
     catch (e) { if (e.status === 403) setErr(true); } finally { setBusy(false); }
   };
 
