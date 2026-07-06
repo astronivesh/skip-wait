@@ -219,10 +219,12 @@ export default function App({ tableToken, kitchenSlug, sharedOrderId }) {
 
   useEffect(() => {
     if (tableToken) {
+      // Dine-in is temporarily disabled — resolve the kitchen only, drop table_id/table_label
+      // so the customer lands on the normal pickup/delivery flow instead of being locked to a table.
       api.resolveTable(tableToken).then((info) => setBrand({
         kitchen_id: info.kitchen_id, kitchen_name: info.kitchen_name,
         kitchen_tag: info.kitchen_tag, grad: info.grad,
-        table_id: info.table_id, table_label: info.table_label,
+        ...(DINE_IN_ENABLED ? { table_id: info.table_id, table_label: info.table_label } : {}),
       })).catch(() => {});
     } else if (kitchenSlug) {
       api.resolveKitchen(kitchenSlug).then((info) => setBrand({
