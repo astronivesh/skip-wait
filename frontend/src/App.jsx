@@ -1711,6 +1711,43 @@ function StarRating({ orderId, initial, onChange }) {
   );
 }
 
+function PrepCountdown({ startedAt, minutes }) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const startMs = startedAt ? new Date(startedAt + (startedAt.endsWith("Z") ? "" : "Z")).getTime() : now;
+  const totalMs = minutes * 60 * 1000;
+  const elapsed = Math.max(0, now - startMs);
+  const remainingMs = Math.max(0, totalMs - elapsed);
+  const remainingSec = Math.ceil(remainingMs / 1000);
+  const mm = Math.floor(remainingSec / 60);
+  const ss = remainingSec % 60;
+  const overdue = remainingMs <= 0;
+
+  return (
+    <div style={{ margin: "0 12px 12px", borderRadius: 18, padding: 16,
+      background: overdue ? "rgba(38,126,62,.08)" : C.primarySoft,
+      border: `1px solid ${overdue ? "rgba(38,126,62,.25)" : C.primaryBorder}`,
+      display: "flex", alignItems: "center", gap: 12 }}>
+      <Clock size={18} style={{ color: overdue ? C.rating : C.primary, flexShrink: 0 }} />
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: overdue ? C.rating : C.primary }}>
+          {overdue ? "Your order should be ready any moment" : "Kitchen is preparing your order"}
+        </div>
+        {!overdue && (
+          <div style={{ fontFamily: MONO, fontSize: 20, fontWeight: 800, color: C.primary, marginTop: 2 }}>
+            {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Track({ orderId, reset, tableInfo, onBack, kitchenName }) {
   const [order,        setOrder]       = useState(null);
   const [cancelling,   setCancelling]  = useState(false);
@@ -1872,19 +1909,17 @@ function Track({ orderId, reset, tableInfo, onBack, kitchenName }) {
 
       {!done && idx === 0 && (
         <div style={{ margin: "0 12px 12px", borderRadius: 18, padding: 16,
-          background: order.payment_confirmed ? "rgba(38,126,62,.08)" : C.primarySoft,
-          border: `1px solid ${order.payment_confirmed ? "rgba(38,126,62,.25)" : C.primaryBorder}`,
+          background: C.primarySoft, border: `1px solid ${C.primaryBorder}`,
           display: "flex", alignItems: "center", gap: 10 }}>
-          {order.payment_confirmed
-            ? <Check size={18} style={{ color: C.rating, flexShrink: 0 }} />
-            : <Clock size={18} style={{ color: C.primary, flexShrink: 0 }} />}
-          <div style={{ fontSize: 13, fontWeight: 700,
-            color: order.payment_confirmed ? C.rating : C.primary }}>
-            {order.payment_confirmed
-              ? "Payment confirmed — kitchen is preparing your order"
-              : "Waiting for the restaurant to confirm your payment"}
+          <Clock size={18} style={{ color: C.primary, flexShrink: 0 }} />
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>
+            Waiting for the restaurant to confirm your payment
           </div>
         </div>
+      )}
+
+      {!done && idx === 1 && order.payment_confirmed && order.prep_minutes && (
+        <PrepCountdown startedAt={order.prep_started_at} minutes={order.prep_minutes} />
       )}
 
       {showRider && !done && (
@@ -2684,6 +2719,8 @@ function KitchenOrders({ kitchenId }) {
   );
 }
 
+const PREP_MIN_OPTIONS = [5, 10, 15, 20, 30, 40, 50];
+
 function KitchenOrder({ o, onChanged }) {
   const [otp,            setOtp]           = useState("");
   const [err,            setErr]           = useState(false);
@@ -2694,6 +2731,7 @@ function KitchenOrder({ o, onChanged }) {
   const [riderName,      setRiderName]     = useState("");
   const [riderVeh,       setRiderVeh]      = useState("");
   const [riderErr,       setRiderErr]      = useState("");
+  const [showPrepPicker, setShowPrepPicker] = useState(false);
 
   const flow = o.flow, idx = o.status_index, done = o.done;
   const isHandoff   = idx === flow.length - 2;
@@ -2714,6 +2752,7 @@ function KitchenOrder({ o, onChanged }) {
   };
 
   const act = async () => {
+    if (idx === 0 && !showPrepPicker) { setShowPrepPicker(true); return; }
     if (needsRider && !o.porter_order_id && !o.rider.name && !showRiderForm) {
       setShowRiderForm(true); return;
     }
@@ -2726,9 +2765,18 @@ function KitchenOrder({ o, onChanged }) {
     }
     setBusy(true); setErr(false);
     try {
-      if (idx === 0) await api.confirmPayment(o.id);
-      else await api.advance(o.id, needsOtp ? otp : null);
+      await api.advance(o.id, needsOtp ? otp : null);
       setOtp(""); setShowRiderForm(false); onChanged();
+    }
+    catch (e) { if (e.status === 403) setErr(true); } finally { setBusy(false); }
+  };
+
+  const confirmPrep = async (mins) => {
+    setBusy(true); setErr(false);
+    try {
+      await api.confirmPayment(o.id, mins);
+      setShowPrepPicker(false);
+      onChanged();
     }
     catch (e) { if (e.status === 403) setErr(true); } finally { setBusy(false); }
   };
@@ -2850,7 +2898,27 @@ function KitchenOrder({ o, onChanged }) {
           {riderErr && <div style={{ color: C.red, fontSize: 12, marginTop: 6, fontWeight: 600 }}>{riderErr}</div>}
         </div>
       )}
-      {!done ? (
+      {!done && idx === 0 && showPrepPicker ? (
+        <div style={{ marginTop: 14, background: C.panel, borderRadius: 12, padding: 12 }}>
+          <div style={{ fontSize: 12.5, color: C.sub, fontWeight: 700, marginBottom: 10 }}>
+            How long will this order take to prepare?</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {PREP_MIN_OPTIONS.map((m) => (
+              <button key={m} onClick={() => confirmPrep(m)} disabled={busy}
+                style={{ padding: "10px 14px", borderRadius: 9, fontWeight: 700, fontSize: 13.5,
+                  border: `1.5px solid ${C.line}`, background: "#fff", color: C.text,
+                  cursor: busy ? "default" : "pointer" }}>
+                {m} min
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setShowPrepPicker(false)} disabled={busy}
+            style={{ marginTop: 10, border: "none", background: "none", color: C.sub,
+              fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: 0 }}>
+            Cancel
+          </button>
+        </div>
+      ) : !done ? (
         <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
           {idx === 0 && (
             <button onClick={async () => {

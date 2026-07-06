@@ -140,6 +140,8 @@ class Order(Base):
     promo_code        = Column(String, nullable=True)
     discount          = Column(Integer, default=0)
     payment_confirmed = Column(Boolean, default=False)
+    prep_minutes      = Column(Integer, nullable=True)
+    prep_started_at   = Column(DateTime, nullable=True)
     created_at        = Column(DateTime, default=datetime.utcnow)
     items             = relationship("OrderItem", back_populates="order")
     removals          = relationship("OrderItemRemoval", back_populates="order",
@@ -229,6 +231,8 @@ def _add_column_if_missing(table: str, col: str, col_def: str):
 _add_column_if_missing("kitchens", "payment_qr",          "TEXT")
 _add_column_if_missing("kitchens", "location_address",    "TEXT")
 _add_column_if_missing("orders",   "payment_confirmed",    "BOOLEAN DEFAULT 0")
+_add_column_if_missing("orders",   "prep_minutes",         "INTEGER")
+_add_column_if_missing("orders",   "prep_started_at",      "DATETIME")
 _add_column_if_missing("orders",   "porter_order_id",     "TEXT")
 _add_column_if_missing("orders",   "porter_tracking_url", "TEXT")
 _add_column_if_missing("users",    "hashed_pw",           "TEXT")
@@ -385,6 +389,11 @@ class OrderIn(BaseModel):
 
 class AdvanceIn(BaseModel):
     otp: Optional[str] = None
+
+PREP_MINUTE_OPTIONS = {5, 10, 15, 20, 30, 40, 50}
+
+class ConfirmPaymentIn(BaseModel):
+    prep_minutes: int
 
 class CategoryIn(BaseModel):
     name: str
@@ -847,6 +856,8 @@ def serialize(o: Order):
         "promo_code":   o.promo_code,
         "discount":     o.discount or 0,
         "payment_confirmed": o.payment_confirmed or False,
+        "prep_minutes": o.prep_minutes,
+        "prep_started_at": o.prep_started_at.isoformat() if o.prep_started_at else None,
         "customer_phone": o.customer_phone,
         "items": [{"item_id": it.id, "id": it.menu_item_id, "name": it.name,
                    "price": it.price, "qty": it.qty, "veg": it.veg,
@@ -1143,7 +1154,7 @@ def advance(oid: str, body: AdvanceIn, db: Session = Depends(get_db)):
 
 
 @app.post("/orders/{oid}/confirm-payment")
-def confirm_payment(oid: str, authorization: str = Header(default=""),
+def confirm_payment(oid: str, body: ConfirmPaymentIn, authorization: str = Header(default=""),
                      db: Session = Depends(get_db)):
     o = db.get(Order, oid)
     if not o:
@@ -1151,7 +1162,11 @@ def confirm_payment(oid: str, authorization: str = Header(default=""),
     verify_kitchen_owner(o.kitchen_id, authorization, db)
     if o.status_index != 0:
         raise HTTPException(400, "Payment already confirmed for this order")
+    if body.prep_minutes not in PREP_MINUTE_OPTIONS:
+        raise HTTPException(400, "Invalid prep time")
     o.payment_confirmed = True
+    o.prep_minutes = body.prep_minutes
+    o.prep_started_at = datetime.utcnow()
     o.status_index += 1
     db.commit()
     db.refresh(o)
