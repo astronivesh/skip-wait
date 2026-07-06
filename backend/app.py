@@ -26,11 +26,16 @@ from sqlalchemy import (create_engine, Column, Integer, String, Boolean,
                         Float, ForeignKey, DateTime, Text)
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
 
-# On Railway, mount a volume at /data — DB lives there so it survives redeploys.
-# Locally it falls back to this file's own directory (so cwd doesn't matter).
-_DB_DIR = os.getenv("DB_DIR", os.path.dirname(os.path.abspath(__file__)))
-DB_URL  = f"sqlite:///{_DB_DIR}/skipwait.db"
-engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
+# Prefer Replit's managed Postgres (DATABASE_URL) so data survives autoscale
+# redeploys/restarts. Falls back to a local SQLite file for offline/local dev.
+_DATABASE_URL = os.getenv("DATABASE_URL", "")
+if _DATABASE_URL:
+    DB_URL = _DATABASE_URL
+    engine = create_engine(DB_URL)
+else:
+    _DB_DIR = os.getenv("DB_DIR", os.path.dirname(os.path.abspath(__file__)))
+    DB_URL  = f"sqlite:///{_DB_DIR}/skipwait.db"
+    engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 Base = declarative_base()
 
@@ -216,8 +221,12 @@ class KitchenHours(Base):
 
 Base.metadata.create_all(engine)
 
-# ── safe column migrations (idempotent) ──
+# ── safe column migrations (idempotent, SQLite-only) ──
+# On Postgres, Base.metadata.create_all() above already creates every column
+# defined on the models, so this legacy SQLite patch-up is skipped entirely.
 def _add_column_if_missing(table: str, col: str, col_def: str):
+    if engine.dialect.name != "sqlite":
+        return
     with engine.connect() as conn:
         cols = [r[1] for r in conn.execute(
             __import__("sqlalchemy").text(f"PRAGMA table_info({table})")

@@ -1,0 +1,1 @@
+- [Skip Wait DB backend](skip-wait-db-backend.md) — app now uses Replit Postgres (DATABASE_URL) when set, SQLite only as local fallback; seeding is idempotent.
