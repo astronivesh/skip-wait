@@ -491,17 +491,27 @@ function Login({ brand, onLogin }) {
   const [code,   setCode]   = useState("");
   const [pw,     setPw]     = useState("");
   const [showPw, setShowPw] = useState(false);
-  const [devOtp, setDevOtp] = useState(null);
   const [step,   setStep]   = useState(1);
   const [busy,   setBusy]   = useState(false);
   const [err,    setErr]    = useState("");
 
-  const switchTab = (t) => { setTab(t); setErr(""); setStep(1); setCode(""); setDevOtp(null); };
+  const switchTab = (t) => { setTab(t); setErr(""); setStep(1); setCode(""); };
 
   const send = async () => {
     if (phone.length < 10) return setErr("Enter a 10-digit number");
     setBusy(true); setErr("");
-    try { const r = await api.requestOtp(phone); setDevOtp(r.dev_otp); setStep(2); }
+    try {
+      const r = await api.requestOtp(phone);
+      if (r.dev_otp) {
+        // No real SMS configured yet — log straight in with the known code, no typing needed.
+        const v = await api.verifyOtp(phone, r.dev_otp);
+        setSession(v.token, v.role, v.kitchen_id);
+        setPhone(phone);
+        onLogin(v.role, v.kitchen_id);
+        return;
+      }
+      setStep(2);
+    }
     catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
   const verify = async () => {
@@ -601,12 +611,6 @@ function Login({ brand, onLogin }) {
               <label style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>
                 Code sent to +91 {phone}
               </label>
-              {devOtp && (
-                <div style={{ marginTop: 8, fontSize: 12.5, color: C.primary, background: C.primarySoft,
-                  padding: "8px 12px", borderRadius: 10 }}>
-                  Dev OTP: <b style={{ fontFamily: MONO }}>{devOtp}</b>
-                </div>
-              )}
               <input value={code} inputMode="numeric" placeholder="• • • •"
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
                 style={{ width: "100%", marginTop: 12, padding: "13px", borderRadius: 12, fontFamily: MONO,
