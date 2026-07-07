@@ -446,6 +446,8 @@ class KitchenCreateIn(BaseModel):
     grad_to: str   = "#E8702A"
     credit_balance: int = 0
     owner_phone: str = ""
+    owner_password: str = ""
+    location_address: str = ""
 
 class KitchenRegisterIn(BaseModel):
     name: str
@@ -1580,19 +1582,25 @@ def admin_create_kitchen(body: KitchenCreateIn, db: Session = Depends(get_db),
     kid = body.id or ("k_" + secrets.token_urlsafe(5))
     if db.get(Kitchen, kid):
         raise HTTPException(400, f"Kitchen id '{kid}' already exists")
+    loc = (body.location_address or "").strip() or None
     db.add(Kitchen(
         id=kid, name=body.name, tag=body.tag, eta=body.eta, dist=body.dist,
         grad_from=body.grad_from, grad_to=body.grad_to,
         rating=4.0, credit_balance=body.credit_balance,
+        location_address=loc,
     ))
     owner_phone = (body.owner_phone or "").strip()
     if owner_phone:
         u = db.get(User, owner_phone)
         if not u:
-            db.add(User(phone=owner_phone, role="kitchen", kitchen_id=kid))
+            u = User(phone=owner_phone, role="kitchen", kitchen_id=kid)
+            db.add(u)
         else:
             u.role = "kitchen"
             u.kitchen_id = kid
+        pw = (body.owner_password or "").strip()
+        if pw:
+            u.hashed_pw = _hash_pw(owner_phone, pw)
     db.commit()
     return {
         "id": kid, "name": body.name, "tag": body.tag, "rating": 4.0,

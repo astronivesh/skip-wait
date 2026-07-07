@@ -529,21 +529,27 @@ function AdminView() {
 }
 
 function AdminCreateKitchenModal({ onDone, onClose }) {
-  const [name,    setName]    = useState("");
-  const [tag,     setTag]     = useState("");
-  const [phone,   setPhone]   = useState("");
-  const [credits, setCredits] = useState("100");
-  const [busy,    setBusy]    = useState(false);
-  const [err,     setErr]     = useState("");
+  const [name,     setName]     = useState("");
+  const [tag,      setTag]      = useState("");
+  const [location, setLocation] = useState("");
+  const [phone,    setPhone]    = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw,   setShowPw]   = useState(false);
+  const [credits,  setCredits]  = useState("100");
+  const [busy,     setBusy]     = useState(false);
+  const [err,      setErr]      = useState("");
 
   const submit = async () => {
     if (!name.trim()) return setErr("Restaurant name is required");
+    if (phone.trim() && phone.trim().length < 10) return setErr("Enter a 10-digit phone number");
     setBusy(true); setErr("");
     try {
       await api.adminCreateKitchen({
         name: name.trim(), tag: tag.trim(),
+        location_address: location.trim(),
         credit_balance: parseInt(credits) || 0,
         owner_phone: phone.trim(),
+        owner_password: password.trim(),
       });
       onDone();
     }
@@ -558,7 +564,16 @@ function AdminCreateKitchenModal({ onDone, onClose }) {
       <label style={lbl}>Cuisine / tagline</label>
       <input value={tag} onChange={(e) => setTag(e.target.value)}
         style={{ ...inp, marginBottom: 12 }} placeholder="e.g. North Indian, Thalis" />
-      <label style={lbl}>Owner phone (10 digits) — they can log in immediately</label>
+      <label style={lbl}>Location / address</label>
+      <input value={location} onChange={(e) => setLocation(e.target.value)}
+        style={{ ...inp, marginBottom: 16 }} placeholder="e.g. Shop 12, MG Road, Jaipur" />
+
+      <div style={{ height: 1, background: C.line, marginBottom: 16 }} />
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1 }}>
+        Kitchen owner login
+      </div>
+
+      <label style={lbl}>Phone number (10 digits)</label>
       <div style={{ display: "flex", alignItems: "center", gap: 8, border: `1.5px solid ${C.line}`,
         borderRadius: 10, padding: "10px 12px", marginBottom: 12 }}>
         <span style={{ color: C.sub, fontFamily: MONO, fontSize: 13 }}>+91</span>
@@ -566,15 +581,25 @@ function AdminCreateKitchenModal({ onDone, onClose }) {
           onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
           style={{ border: "none", outline: "none", fontSize: 14, flex: 1, fontFamily: MONO }} />
       </div>
+
+      <label style={lbl}>Password (optional — can also log in with OTP)</label>
+      <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${C.line}`,
+        borderRadius: 10, padding: "10px 12px", marginBottom: 12 }}>
+        <input value={password} type={showPw ? "text" : "password"}
+          placeholder="Set a password for this kitchen"
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ border: "none", outline: "none", fontSize: 14, flex: 1 }} />
+        <span onClick={() => setShowPw(p => !p)}
+          style={{ color: C.sub, fontSize: 12, cursor: "pointer", userSelect: "none", paddingLeft: 8 }}>
+          {showPw ? "Hide" : "Show"}
+        </span>
+      </div>
+
       <label style={lbl}>Starting credits (₹)</label>
       <input value={credits} inputMode="numeric"
         onChange={(e) => setCredits(e.target.value.replace(/\D/g, ""))}
         style={{ ...inp, marginBottom: 16 }} />
-      <div style={{ fontSize: 12, color: C.sub, background: C.panel, borderRadius: 8,
-        padding: "8px 12px", marginBottom: 16, lineHeight: 1.6 }}>
-        The owner will log in with OTP on their phone and immediately see their kitchen dashboard.
-        No separate onboarding needed.
-      </div>
+
       {err && <div style={{ color: C.red, fontSize: 13, marginBottom: 12 }}>{err}</div>}
       <button onClick={submit} disabled={busy}
         style={{ width: "100%", padding: "13px", background: busy ? C.sub : C.primary, color: "#fff",
