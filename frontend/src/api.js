@@ -48,10 +48,12 @@ async function req(method, path, body, auth) {
 
 export const api = {
   // auth
+  checkPhone:         (phone)           => req("POST", "/auth/check-phone",    { phone }),
+  signup:             (phone, password) => req("POST", "/auth/signup",         { phone, password }),
+  passwordLogin:      (phone, password) => req("POST", "/auth/password-login", { phone, password }),
+  adminPasswordLogin: (phone, password) => req("POST", "/auth/password-login", { phone, password }),
   requestOtp:         (phone)           => req("POST", "/auth/request-otp",    { phone }),
   verifyOtp:          (phone, code)     => req("POST", "/auth/verify-otp",     { phone, code }),
-  adminPasswordLogin: (phone, password) => req("POST", "/auth/password-login", { phone, password }),
-  passwordLogin:      (phone, password) => req("POST", "/auth/password-login", { phone, password }),
   setMyPassword:      (password)        => req("PATCH", "/me/password",         { password }, true),
   adminSetUserPassword: (phone, password) => req("PATCH", `/admin/users/${phone}/set-password`, { password }, true),
 

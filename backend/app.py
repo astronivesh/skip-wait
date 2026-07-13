@@ -516,7 +516,30 @@ def password_login(body: PasswordLoginIn, db: Session = Depends(get_db)):
     return {"token": token, "role": user.role, "kitchen_id": user.kitchen_id, "phone": body.phone}
 
 
-# ── auth ──
+@app.post("/auth/check-phone")
+def check_phone(body: PhoneIn, db: Session = Depends(get_db)):
+    user = db.get(User, body.phone)
+    return {"new_user": not user or not user.hashed_pw}
+
+
+@app.post("/auth/signup")
+def signup(body: PasswordLoginIn, db: Session = Depends(get_db)):
+    user = db.get(User, body.phone)
+    if user and user.hashed_pw:
+        raise HTTPException(400, "Account already exists — please sign in instead")
+    if len(body.password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    if not user:
+        user = User(phone=body.phone, role="customer")
+        db.add(user)
+    user.hashed_pw = _hash_pw(body.phone, body.password)
+    token = secrets.token_urlsafe(24)
+    db.add(UserSession(token=token, phone=body.phone))
+    db.commit()
+    return {"token": token, "role": user.role, "kitchen_id": user.kitchen_id, "phone": body.phone}
+
+
+# ── auth (OTP — kept for backwards compat, not used by default UI) ──
 @app.post("/auth/request-otp")
 def request_otp(body: PhoneIn, db: Session = Depends(get_db)):
     code = f"{random.randint(1000, 9999)}"
