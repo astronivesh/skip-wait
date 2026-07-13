@@ -488,7 +488,11 @@ class SetPasswordIn(BaseModel):
 def set_my_password(body: SetPasswordIn,
                     authorization: str = Header(default=""),
                     db: Session = Depends(get_db)):
-    phone = require_auth(authorization, db)
+    token = authorization.replace("Bearer ", "").strip()
+    sess  = db.get(UserSession, token)
+    if not sess:
+        raise HTTPException(401, "Not logged in")
+    phone = sess.phone
     if len(body.password) < 6:
         raise HTTPException(400, "Password must be at least 6 characters")
     user = db.get(User, phone)

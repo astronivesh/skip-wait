@@ -628,14 +628,7 @@ function Login({ brand, onLogin }) {
     setBusy(true); setErr("");
     try {
       const r = await api.requestOtp(phone);
-      if (r.dev_otp) {
-        // No real SMS configured yet — log straight in with the known code, no typing needed.
-        const v = await api.verifyOtp(phone, r.dev_otp);
-        setSession(v.token, v.role, v.kitchen_id);
-        setPhone(phone);
-        onLogin(v.role, v.kitchen_id);
-        return;
-      }
+      if (r.dev_otp) setCode(r.dev_otp); // SMS not configured — prefill code for manual submit
       setStep(2);
     }
     catch (e) { setErr(e.message); } finally { setBusy(false); }
@@ -1673,7 +1666,7 @@ function Cart({ kid, lines, foodTotal, mode, setMode, arrival, setArrival, table
         )}
         <div style={{ height: 1, background: C.line, margin: "9px 0" }} />
         <Bar><span style={{ fontWeight: 800, fontSize: 15 }}>To pay</span>
-          <span style={{ fontWeight: 800, fontSize: 15, fontFamily: MONO }}>₹{b.total}</span></Bar>
+          <span style={{ fontWeight: 800, fontSize: 15, fontFamily: MONO }}>₹{Math.max(0, b.total - (promoApplied?.discount || 0))}</span></Bar>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 12px 0",
